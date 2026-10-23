@@ -5,10 +5,11 @@ import { rules, type CheckId } from "./config";
 import { localStartTime, type Occurrence } from "./schedule";
 import { formatShortDate, formatTime12, zonedParts } from "./time";
 
-export type PostKind = "lesson" | "cancellation" | "weekly_outline";
+/** "test" posts come from scripts/e2e-test.ts and always publish hidden. */
+export type PostKind = "lesson" | "cancellation" | "weekly_outline" | "test";
 
-/** "planChanged" is added by posts.ts when the plan changes after you approved it. */
-export interface Issue { check: CheckId | "planChanged"; message: string }
+/** "planChanged" is added by posts.ts when the plan changes after you approved it; "test" holds e2e test posts. */
+export interface Issue { check: CheckId | "planChanged" | "test"; message: string }
 
 export interface Draft {
     kind: PostKind;
@@ -24,7 +25,7 @@ function hash(s: string): string {
 }
 
 function finish(kind: PostKind, message: string, all: Issue[]): Draft {
-    const issues = all.filter((i) => i.check === "planChanged" || rules.checks[i.check]);
+    const issues = all.filter((i) => i.check === "planChanged" || i.check === "test" || rules.checks[i.check]);
     return { kind, message, issues, planHash: hash(message) };
 }
 

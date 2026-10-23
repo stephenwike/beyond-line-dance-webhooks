@@ -46,6 +46,8 @@ export interface SocialPost {
     publishedAt: Date | null;
     error: string | null;
     note: string | null;
+    /** Publish unpublished (e2e test posts). */
+    hidden?: boolean;
     decidedBy: string | null;
     decidedAt: Date | null;
     createdAt: Date;
@@ -129,7 +131,7 @@ export async function publishPost(col: Collection<SocialPost>, id: string, from:
     );
     if (!claimed) return null;
     try {
-        const fbPostId = await publishToPage(claimed.editedMessage ?? claimed.message);
+        const fbPostId = await publishToPage(claimed.editedMessage ?? claimed.message, { hidden: claimed.hidden });
         await col.updateOne({ _id: id }, { $set: { status: "published", fbPostId, publishedAt: new Date(), error: null, updatedAt: new Date() } });
     } catch (e) {
         const error = e instanceof Error ? e.message : String(e);

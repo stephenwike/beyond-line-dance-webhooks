@@ -62,6 +62,7 @@ BLD_DB_NAME=bld
 - `pnpm tick`: one tick against `MONGODB_URI` from `.env.local`
 - `pnpm test-alert`: send a sample phone alert
 - `pnpm preview`: read-only list of the next 7 days of classes and what will happen to each post (`MONGODB_URI=<live> pnpm preview` for live)
+- `MONGODB_URI=<live> pnpm e2e`: end-to-end test of production. Creates a held TEST post (shows on Social Posts, sends a phone alert); approving it publishes a hidden Facebook post. `-- --auto` publishes without approval; `-- --cleanup` deletes the hidden posts and test documents.
 - `pnpm typecheck`
 
 ## Not done yet
