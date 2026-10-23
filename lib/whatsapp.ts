@@ -30,11 +30,12 @@ export function verifyShare(p: Pick<SharePost, "_id" | "planHash">, token: strin
 /** The alert sent after a post publishes on Facebook. */
 export function shareAlert(p: SharePost): Alert {
     const url = shareUrl(p);
+    // Worded so it can't be mistaken for the Facebook alerts, which show the same image.
     return {
-        title: `Share to WhatsApp: ${p.label}`,
-        message: `It's on Facebook. Tap to share the image and caption to your ${brand.name} group or channel.`,
+        title: "💬 WhatsApp: share this post",
+        message: `Facebook is done ✓. Now share it to your ${brand.name} WhatsApp group or channel.\n${p.label}`,
         url, urlTitle: "Share to WhatsApp",
-        tags: ["speech_balloon"],
+        tags: ["green_circle"],
         image: p.card ? cardUrl(p) : undefined,
         actions: [{ kind: "view", label: "Share to WhatsApp", url }],
     };

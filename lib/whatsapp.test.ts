@@ -25,7 +25,8 @@ describe("share links", () => {
 
     it("alerts with the image and a share button", () => {
         const a = shareAlert(p);
-        expect(a.title).toBe("Share to WhatsApp: Charlies Country, Sat 10/24 5:00 PM");
+        expect(a.title).toBe("💬 WhatsApp: share this post");
+        expect(a.message).toContain("Charlies Country, Sat 10/24 5:00 PM");
         expect(a.image).toBe("https://poster.example/api/card/6adbb6accde38a44af9b31c1?v=abc");
         expect(a.actions).toEqual([{ kind: "view", label: "Share to WhatsApp", url: shareUrl(p) }]);
     });
