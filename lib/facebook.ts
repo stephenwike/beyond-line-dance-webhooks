@@ -58,6 +58,25 @@ async function permalinkOf(postId: string): Promise<string | null> {
     }
 }
 
+/** Facebook's own copy of a post, so hidden (unpublished) posts can be checked from the admin. */
+export interface StoredPost { image: string | null; caption: string | null; published: boolean | null; link: string | null; createdAt: string | null }
+
+export async function readStoredPost(id: string): Promise<StoredPost> {
+    const get = async (fields: string) => {
+        const res = await fetch(`https://graph.facebook.com/${env.fbGraphVersion()}/${id}?fields=${fields}&access_token=${env.fbPageToken()}`);
+        return res.json();
+    };
+    // A text or photo *post* has message/full_picture; an unpublished photo is only a photo object.
+    const post = await get("message,full_picture,permalink_url,is_published,created_time");
+    if (!post.error) {
+        return { image: post.full_picture ?? null, caption: post.message ?? null, published: post.is_published ?? null, link: post.permalink_url ?? null, createdAt: post.created_time ?? null };
+    }
+    const photo = await get("name,images,link,created_time");
+    if (photo.error) throw new GraphError(photo.error.message ?? "Couldn't read the post", 400, photo);
+    const largest = (photo.images ?? []).sort((a: { width: number }, b: { width: number }) => b.width - a.width)[0];
+    return { image: largest?.source ?? null, caption: photo.name ?? null, published: false, link: null, createdAt: photo.created_time ?? null };
+}
+
 export async function deletePost(postId: string): Promise<void> {
     const url = `https://graph.facebook.com/${env.fbGraphVersion()}/${postId}?access_token=${env.fbPageToken()}`;
     const res = await fetch(url, { method: "DELETE" });
