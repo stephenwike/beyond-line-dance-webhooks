@@ -15,8 +15,14 @@ export async function GET(_req: Request, { params }: Ctx) {
     const post = await posts(await getBldDb()).findOne({ _id: id }, { projection: { card: 1 } });
     if (!post?.card) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const image = await renderCard(post.card);
-    // The URL carries ?v=<planHash>, so a changed plan is a new URL and the image can be cached.
-    image.headers.set("Cache-Control", "public, max-age=86400, immutable");
-    return image;
+    try {
+        const image = await renderCard(post.card);
+        // Render now so a drawing error is caught here rather than mid-stream.
+        const png = await image.arrayBuffer();
+        // The URL carries ?v=<planHash>, so a changed plan is a new URL and the image can be cached.
+        return new Response(png, { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400, immutable" } });
+    } catch (e: unknown) {
+        console.error(`card ${id} failed`, e);
+        return NextResponse.json({ error: "Couldn't draw this post's image" }, { status: 500 });
+    }
 }

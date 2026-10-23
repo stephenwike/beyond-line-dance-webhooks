@@ -179,9 +179,11 @@ function ClassRow({ c, compact }: { c: CardClass; compact: boolean }) {
 // ── Layouts ──────────────────────────────────────────────────────────────────
 
 function LessonCard({ card, logo, photo }: { card: Extract<CardData, { type: "lesson" }>; logo: string; photo: string }) {
+    // Posts drafted before this layout have no when/date; their next redraft adds them.
+    const when = card.when ?? "Tonight";
     const shown = card.lessons.slice(0, 4);
     const more = card.lessons.length - shown.length;
-    const [day, ...rest] = card.date.split(" ");
+    const [day, ...rest] = (card.date ?? "").split(" ");
     return (
         <div style={{ position: "relative", display: "flex", flexDirection: "column", width: CARD_WIDTH, height: CARD_HEIGHT }}>
             <Backdrop logo={logo} photo={photo} height={740} />
@@ -189,13 +191,13 @@ function LessonCard({ card, logo, photo }: { card: Extract<CardData, { type: "le
             <div style={{ display: "flex", flexDirection: "column", padding: `0 ${PAD}px`, marginTop: 380 }}>
                 <DateLine day={day} date={rest.join(" ")} time={card.startTime} />
                 <div style={{ display: "flex", marginTop: 10 }}><Headline text={card.venue ?? card.title} /></div>
-                <div style={{ display: "flex", marginTop: -6, marginLeft: -6 }}><Brush text={`${card.when}!`} size={112} /></div>
+                <div style={{ display: "flex", marginTop: -6, marginLeft: -6 }}><Brush text={`${when}!`} size={112} /></div>
                 <div style={{ display: "flex", marginTop: 14, color: C.muted, fontSize: 28, fontWeight: 600, letterSpacing: 1 }}>
                     {[card.venue ? card.title : null, card.level, card.substitute ? `With ${card.substitute}` : null].filter(Boolean).join("  ·  ")}
                 </div>
                 {shown.length > 0 && (
                     <div style={{ display: "flex", flexDirection: "column", marginTop: 26 }}>
-                        <Panel title={`${card.when.toUpperCase()}'S DANCES`}>
+                        <Panel title={`${when.toUpperCase()}'S DANCES`}>
                             {shown.map((l, i) => <LessonRow key={i} l={l} last={i === shown.length - 1 && more === 0} />)}
                             {more > 0 && <div style={{ display: "flex", padding: "12px 0", color: C.muted, fontSize: 24 }}>+ {more} more</div>}
                         </Panel>
@@ -209,7 +211,7 @@ function LessonCard({ card, logo, photo }: { card: Extract<CardData, { type: "le
 }
 
 function CancellationCard({ card, logo, photo }: { card: Extract<CardData, { type: "cancellation" }>; logo: string; photo: string }) {
-    const [day, ...rest] = card.date.split(" ");
+    const [day, ...rest] = (card.date ?? "").split(" ");
     return (
         <div style={{ position: "relative", display: "flex", flexDirection: "column", width: CARD_WIDTH, height: CARD_HEIGHT }}>
             <Backdrop logo={logo} photo={photo} height={800} />
