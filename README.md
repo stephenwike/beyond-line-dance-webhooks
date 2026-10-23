@@ -16,6 +16,10 @@ Each post is a branded 1080×1350 image ([lib/card.tsx](lib/card.tsx), in the st
 
 Each class has its own style ([lib/styles.ts](lib/styles.ts)): a color theme, a background photo from `assets/photos`, the headline and call to action on the image, and the caption's first line and extra hashtags. Classes start from a suggested style (`SUGGESTED_STYLES`), and the admin's **Ads** page (Social → Ads) overrides it field by field, with a live preview; saved styles live in `bld.post_styles` (one document per event type). Cancellations and the weekly schedule have their own styles on the same page (`type:cancellation`, `type:weekly_outline`); a cancellation uses the cancelled class's colors and photo unless you turn that off. To add a photo, put a 1080px-wide JPEG in `assets/photos` and list it in `PHOTOS`.
 
+## WhatsApp
+
+Meta has no API for posting to a WhatsApp Channel, and its Groups API needs an Official Business Account and only reaches groups of up to 8 people that it creates itself. So posts reach the WhatsApp group and Updates channel by a one-tap share: after each post publishes on Facebook, a "Share to WhatsApp" phone alert opens `/share/<post id>` (a signed link), which copies the caption and hands the image and a WhatsApp-formatted caption (bold first line, no hashtags) to the phone's share sheet. Switch it off with `rules.whatsappShare` in [lib/config.ts](lib/config.ts). If Meta adds Channel posting or opens up groups, this is where an automatic post would go.
+
 ## Safety rails
 
 Every 30 minutes `/api/cron/tick` drafts the posts that are due and runs the checks in [lib/config.ts](lib/config.ts):

@@ -19,6 +19,8 @@ export const brand = {
 };
 
 export const rules = {
+    /** After each post reaches Facebook, send a phone alert to share it to WhatsApp (lib/whatsapp.ts). */
+    whatsappShare: true,
     lesson: {
         /** Post this many hours before class starts. */
         leadHours: 6,

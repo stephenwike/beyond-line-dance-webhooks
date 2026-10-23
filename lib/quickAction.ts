@@ -3,7 +3,7 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export type QuickAction = "approve" | "skip";
+export type QuickAction = "approve" | "skip" | "share";
 
 function secret(): string {
     const s = process.env.INTERNAL_API_SECRET;

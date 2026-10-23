@@ -16,6 +16,7 @@ import { publishToPage } from "./facebook";
 import { failedAlert, waitingAlert } from "./alerts";
 import { sendPhoneAlert } from "./notify";
 import { cardUrl } from "./urls";
+import { shareAlert } from "./whatsapp";
 import { loadOccurrences, localStartTime, type Occurrence } from "./schedule";
 import { loadSavedStyles, resolveStyle, resolveTypeStyle } from "./styles";
 import { addDays, formatShortDate, formatTime12, mondayOf, zonedParts } from "./time";
@@ -143,6 +144,10 @@ export async function publishPost(col: Collection<SocialPost>, id: string, from:
         await col.updateOne({ _id: id }, {
             $set: { status: "published", fbPostId: published.id, fbPermalink: published.permalink, publishedAt: new Date(), error: null, updatedAt: new Date() },
         });
+        if (rules.whatsappShare && !published.id.startsWith("dry-run")) {
+            // A failed alert mustn't make a published post look failed.
+            await sendPhoneAlert(shareAlert(claimed)).catch((err) => console.error("Share alert failed", err));
+        }
     } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
         await col.updateOne({ _id: id }, { $set: { status: "failed", error, updatedAt: new Date() } });
