@@ -10,7 +10,7 @@ Facebook Events aren't created. Meta's Graph API doesn't allow creating, updatin
 
 ## What a post looks like
 
-Each post is a branded 1080×1350 image ([lib/card.tsx](lib/card.tsx): your logo, the sunset photo, Montserrat and Great Vibes) with the text as its caption ([lib/drafts.ts](lib/drafts.ts)). Facebook downloads the image from `/api/card/<post id>`, which is also the preview on the admin's Social Posts page. Hashtags and the "No partner needed" line are in `brand` in [lib/config.ts](lib/config.ts).
+Each post is a branded 1080×1350 image ([lib/card.tsx](lib/card.tsx), in the style of the Intermediate Social poster: your logo, the purple dance-floor photo, Montserrat with a Kaushan brush script, a neon price badge) with the text as its caption ([lib/drafts.ts](lib/drafts.ts)). Facebook downloads the image from `/api/card/<post id>`, which is also the preview on the admin's Social Posts page. Hashtags and the "No partner needed" line are in `brand` in [lib/config.ts](lib/config.ts).
 
 ## Safety rails
 
