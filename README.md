@@ -10,7 +10,7 @@ Facebook Events aren't created. Meta's Graph API doesn't allow creating, updatin
 
 ## Safety rails
 
-Every 5 minutes `/api/cron/tick` drafts the posts that are due and runs the checks in [lib/config.ts](lib/config.ts):
+Every 30 minutes `/api/cron/tick` drafts the posts that are due and runs the checks in [lib/config.ts](lib/config.ts):
 
 | Result | When | What happens |
 |---|---|---|
@@ -49,7 +49,7 @@ BLD_DB_NAME=bld
 ```
 
 ### 4. Deploy (Vercel)
-[vercel.json](vercel.json) runs the tick every 5 minutes, the same rhythm as copperknob-alert's feed check. It is its own cron job, so a problem in one app doesn't stop the other. The rules in [lib/config.ts](lib/config.ts) decide when posts are due; the tick only decides how promptly they go out.
+[vercel.json](vercel.json) runs the tick every 30 minutes. A tick with nothing due is a couple of small reads, and approving a post in the admin publishes it immediately, so posts go out 5½–6 hours before class and alerts arrive 2½–3 hours before. The rules in [lib/config.ts](lib/config.ts) decide when posts are due; the tick only decides how promptly they go out.
 
 ## Going live checklist
 1. Deploy with `FACEBOOK_PUBLISH=dry-run`. Watch Social Posts for a few days: are the right classes picked up, and is the text right?
