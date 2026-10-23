@@ -21,7 +21,8 @@ export async function listStyles() {
     const saved = await loadSavedStyles(bldDb);
     const adType = (type: AdType) => ({ saved: saved.get(`type:${type}`) ?? null, defaults: TYPE_DEFAULTS[type], effective: resolveTypeStyle(type, saved) });
     return {
-        themes: Object.entries(THEMES).map(([id, t]) => ({ id, label: t.label, colors: [t.brushFrom, t.brushTo, t.swoosh, t.deep] })),
+        // palette lets the admin draw a small sample card per theme.
+        themes: Object.entries(THEMES).map(([id, t]) => ({ id, label: t.label, colors: [t.brushFrom, t.brushTo, t.swoosh, t.deep], palette: t })),
         photos: Object.entries(PHOTOS).map(([id, p]) => ({ id, label: p.label })),
         defaultStyle: DEFAULT_STYLE,
         eventTypes: types.map((t) => ({
