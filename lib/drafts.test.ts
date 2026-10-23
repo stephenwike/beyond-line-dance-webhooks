@@ -11,19 +11,20 @@ describe("lessonDraft", () => {
             lessons: [lesson(), lesson({ _id: "l2", startAt: new Date("2026-10-20T02:00:00Z"), dance: "Cowboy Cha Cha", danceId: "d2" })],
         }), SITE);
         expect(d.issues).toEqual([]);
-        expect(d.message).toMatch(/^💃 Line dancing tonight at Charlie's Denver! 🤠/);
+        expect(d.message).toMatch(/^💃 Line dancing tonight at Charlie's Denver! ✨/);
         expect(d.message).toContain("Charlies Country · starts 7:00 PM\nBeginner · $10 · No partner needed");
         expect(d.message).toContain("7:00 PM  Copperhead Road · Beginner\n8:00 PM  Cowboy Cha Cha · Beginner");
         expect(d.message).toContain("📍 Charlie's Denver, 900 E Colfax Ave, Denver");
         expect(d.message).toContain("Copperhead Road: https://example.com/copperhead");
         expect(d.message).toContain(`${SITE}/calendar`);
-        expect(d.message).toContain("#LineDancing");
+        expect(d.message).toContain("#LineDance");
+        expect(d.message).not.toMatch(/#Country|🤠/);
     });
 
     it("builds the image card from the same plan", () => {
         const d = lessonDraft(occurrence(), SITE);
         expect(d.card).toEqual({
-            type: "lesson", eyebrow: "TONIGHT · MON, OCT 19", title: "Charlies Country", venue: "Charlie's Denver",
+            type: "lesson", when: "Tonight", date: "MONDAY OCT 19", title: "Charlies Country", venue: "Charlie's Denver",
             startTime: "7:00 PM", level: "Beginner", price: "$10", substitute: null,
             lessons: [{ time: "7:00 PM", dance: "Copperhead Road", level: "Beginner" }],
         });
@@ -55,7 +56,7 @@ describe("lessonDraft", () => {
         const d = lessonDraft(occurrence({ startAt: new Date("2026-10-19T18:00:00Z"), substitute: "Jane" }), SITE);
         expect(d.message).toMatch(/^💃 Line dancing today/);
         expect(d.message).toContain("👋 Jane is teaching today.");
-        expect(d.card).toMatchObject({ eyebrow: "TODAY · MON, OCT 19", substitute: "Jane" });
+        expect(d.card).toMatchObject({ when: "Today", date: "MONDAY OCT 19", substitute: "Jane" });
     });
 
     it("changes planHash when the text changes", () => {

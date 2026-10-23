@@ -15,7 +15,7 @@ export const brand = {
     name: "Beyond Line Dance",
     /** Short reassurance shown with each class. */
     welcome: "No partner needed",
-    hashtags: ["#LineDancing", "#DenverLineDance", "#CountryDancing", "#BeyondLineDance"],
+    hashtags: ["#LineDance", "#LineDancing", "#DenverLineDance", "#DenverDance", "#BeyondLineDance"],
 };
 
 export const rules = {

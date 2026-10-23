@@ -18,10 +18,10 @@ export interface CardClass { time: string; title: string; venue: string | null; 
 /** What the image shows (lib/card.tsx draws it). */
 export type CardData =
     | {
-        type: "lesson"; eyebrow: string; title: string; venue: string | null; startTime: string;
+        type: "lesson"; when: "Tonight" | "Today"; date: string; title: string; venue: string | null; startTime: string;
         level: string | null; price: string | null; lessons: CardLesson[]; substitute: string | null;
     }
-    | { type: "cancellation"; eyebrow: string; title: string; venue: string | null; startTime: string; note: string | null }
+    | { type: "cancellation"; date: string; title: string; venue: string | null; startTime: string; note: string | null }
     | { type: "weekly"; eyebrow: string; range: string; days: { day: string; classes: CardClass[] }[] };
 
 export interface Draft {
@@ -48,6 +48,9 @@ function join(...parts: (string | null | undefined | false)[]): string {
 }
 
 const hashtags = () => brand.hashtags.join(" ");
+
+/** "2026-10-26" → "MONDAY OCT 26", the image's date line. */
+const cardDate = (ymd: string) => formatLongDate(ymd).replace(",", "").toUpperCase();
 
 function lessonLabel(o: Occurrence, startAt: Date | null, dance: string | null): string {
     const at = startAt ? formatTime12(zonedParts(startAt, o.timeZone).hhmm) : "(no time)";
@@ -92,7 +95,7 @@ export function lessonDraft(o: Occurrence, siteUrl: string): Draft {
     const sub = o.substitute?.trim() || null;
 
     const message = join(
-        `💃 Line dancing ${when}${at}! 🤠`,
+        `💃 Line dancing ${when}${at}! ✨`,
         `${o.title} · starts ${start}\n${[o.level, o.price, brand.welcome].filter(Boolean).join(" · ")}`,
         lessonLines.length > 0 && `🎶 What we're learning:\n${lessonLines.join("\n")}`,
         sub && `👋 ${sub} is teaching ${when}.`,
@@ -103,8 +106,7 @@ export function lessonDraft(o: Occurrence, siteUrl: string): Draft {
         hashtags(),
     );
     const card: CardData = {
-        type: "lesson",
-        eyebrow: `${when.toUpperCase()} · ${formatLongDate(o.date, true).toUpperCase()}`,
+        type: "lesson", when: when === "tonight" ? "Tonight" : "Today", date: cardDate(o.date),
         title: o.title, venue: o.venueName, startTime: start,
         level: o.level, price: o.price, lessons: cardLessons, substitute: sub,
     };
@@ -126,7 +128,7 @@ export function cancellationDraft(o: Occurrence, siteUrl: string): Draft {
         hashtags(),
     );
     const card: CardData = {
-        type: "cancellation", eyebrow: formatLongDate(o.date, true).toUpperCase(),
+        type: "cancellation", date: cardDate(o.date),
         title: o.title, venue: o.venueName, startTime: start, note,
     };
     return finish("cancellation", message, card, issues);
@@ -159,7 +161,7 @@ export function weeklyDraft(occurrences: Occurrence[], siteUrl: string): Draft {
     const dates = occurrences.map((o) => o.date).sort();
     const range = dates.length ? `${formatLongDate(dates[0], true)} – ${formatLongDate(dates[dates.length - 1], true)}` : "";
     const message = join(
-        `🗓️ This week at ${brand.name} 🤠`,
+        `🗓️ This week at ${brand.name} 💜`,
         blocks.length ? blocks.join("\n\n") : "No classes this week.",
         `${brand.welcome}, everyone is welcome! Lesson plans post a few hours before each class.`,
         `📅 Full schedule: ${siteUrl}/calendar`,
