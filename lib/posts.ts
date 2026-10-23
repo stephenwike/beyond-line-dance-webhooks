@@ -150,6 +150,31 @@ function adminLink(id: string): string | undefined {
     return base ? `${base}/social-posts?id=${id}` : undefined;
 }
 
+/**
+ * Redraft one open post from the current plan, right after you edit it in the admin. Never publishes:
+ * the next tick (or your approval) does that. Weekly outlines aren't tied to one class and are left alone.
+ */
+export async function refreshPost(id: string, now = new Date()): Promise<SocialPost | null> {
+    const [lessonsDb, mainDb, bldDb] = await Promise.all([getLessonsDb(), getMainDb(), getBldDb()]);
+    const col = posts(bldDb);
+    const p = await col.findOne({ _id: id });
+    if (!p || !OPEN.includes(p.status) || p.kind === "weekly_outline") return p;
+
+    const occurrences = await loadOccurrences(lessonsDb, mainDb, {
+        instructorId: env.instructorId(), defaultTimeZone: env.defaultTimeZone(), from: p.date, to: p.date,
+    });
+    const o = occurrences.find((x) => (p.eventId && x.eventId === p.eventId) || (p.eventTypeId && x.eventTypeId === p.eventTypeId));
+    if (!o) return p;
+
+    const draft = p.kind === "cancellation" ? cancellationDraft(o, env.siteUrl()) : lessonDraft(o, env.siteUrl());
+    // A test post stays held whatever the plan says.
+    const issues = [...p.issues.filter((i) => i.check === "test"), ...draft.issues];
+    await col.updateOne({ _id: id, status: { $in: OPEN } }, {
+        $set: { message: draft.message, issues, planHash: draft.planHash, eventId: o.eventId, updatedAt: now },
+    });
+    return col.findOne({ _id: id });
+}
+
 export interface TickReport { created: number; refreshed: number; published: number; alerted: number; expired: number; reopened: number; skipped: number; errors: string[] }
 
 export async function tick(now = new Date()): Promise<TickReport> {
