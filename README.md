@@ -71,4 +71,5 @@ BLD_DB_NAME=bld
 - `pnpm typecheck`
 
 ## Not done yet
+- **Hidden posts:** a viewer in the admin listing every hidden test post with one-click cleanup (see the admin's `docs/TODO.md`). Until then, `pnpm e2e -- --cleanup` deletes them.
 - **Contract:** `bld.social_posts` isn't in `@ldco/database` yet. Add it in `../ldco-database` (insert a document locally, `contract:infer`, add it to `purposes.ts` and `descriptions.ts`, bump the version, `contract:lock`, `package:build`).
