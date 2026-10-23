@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getBldDb } from "@/lib/db";
 import { posts } from "@/lib/posts";
+import { cardPath } from "@/lib/urls";
 import { verifyShare, whatsappCaption } from "@/lib/whatsapp";
 import { ShareActions } from "./ShareActions";
 
@@ -35,7 +36,7 @@ export default async function SharePage({ params, searchParams }: Props) {
                             {post.label}{post.kind === "test" ? " (test post)" : ""}
                         </p>
                         <ShareActions
-                            imageUrl={post.card ? `/api/card/${post._id}?v=${post.planHash}` : null}
+                            imageUrl={post.card ? cardPath(post, "whatsapp") : null}
                             caption={whatsappCaption(post.editedMessage ?? post.message)}
                         />
                     </>

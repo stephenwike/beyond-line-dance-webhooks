@@ -12,7 +12,7 @@ export function lesson(over: Partial<PlannedLesson> = {}): PlannedLesson {
 export function occurrence(over: Partial<Occurrence> = {}): Occurrence {
     return {
         key: "et1|2026-10-19", eventTypeId: "et1", eventId: "ev1", date: "2026-10-19",
-        startAt: new Date("2026-10-20T01:00:00Z"), timeZone: "America/Denver",
+        startAt: new Date("2026-10-20T01:00:00Z"), endAt: new Date("2026-10-20T03:00:00Z"), timeZone: "America/Denver",
         title: "Charlies Country", level: "Beginner", price: "$10", venueName: "Charlie's Denver", venueAddress: "900 E Colfax Ave, Denver",
         isCancelled: false, cancelNote: null, substitute: null, substituteInstructorId: null, specialNote: null,
         lessons: [lesson()], ...over,

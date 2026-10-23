@@ -16,7 +16,7 @@ export interface PlannedLesson {
 }
 export interface EventDoc {
     _id: string; eventTypeId?: string | null; venueId?: string | null; title?: string | null;
-    date: string; startAt: Date; timeZone?: string | null; isCancelled?: boolean; cancelNote?: string | null;
+    date: string; startAt: Date; endAt?: Date | null; timeZone?: string | null; isCancelled?: boolean; cancelNote?: string | null;
     substitute?: string | null; substituteInstructorId?: string | null; specialNote?: string | null;
     lessons?: PlannedLesson[];
 }
@@ -29,6 +29,8 @@ export interface Occurrence {
     eventId: string | null;
     date: string;
     startAt: Date;
+    /** When the class ends, if known. */
+    endAt: Date | null;
     timeZone: string;
     title: string;
     level: string | null;
@@ -96,7 +98,9 @@ export function projectOccurrences(input: ScheduleInput): Occurrence[] {
             if (out.has(key)) continue;
             out.set(key, {
                 key, eventTypeId: et._id, eventId: null, date: ymd,
-                startAt: zonedTimeToUtc(ymd, f.startTime, timeZone), timeZone,
+                startAt: zonedTimeToUtc(ymd, f.startTime, timeZone),
+                endAt: f.durationMinutes ? new Date(zonedTimeToUtc(ymd, f.startTime, timeZone).getTime() + f.durationMinutes * 60_000) : null,
+                timeZone,
                 title: et.title, level: et.level ?? null, price: et.price ?? null,
                 venueName: (et.venueId && venueById.get(et.venueId)?.venuename) || null,
                 venueAddress: addressOf(et.venueId ? venueById.get(et.venueId) : undefined),
@@ -114,7 +118,7 @@ export function projectOccurrences(input: ScheduleInput): Occurrence[] {
         const key = et ? `${et._id}|${ev.date}` : `event:${ev._id}`;
         out.set(key, {
             key, eventTypeId: et?._id ?? null, eventId: ev._id, date: ev.date,
-            startAt: new Date(ev.startAt), timeZone: zoneFor(venueId, ev.timeZone),
+            startAt: new Date(ev.startAt), endAt: ev.endAt ? new Date(ev.endAt) : null, timeZone: zoneFor(venueId, ev.timeZone),
             title: et?.title ?? ev.title ?? "Special event",
             level: et?.level ?? null, price: et?.price ?? null,
             venueName: (venueId && venueById.get(venueId)?.venuename) || null,

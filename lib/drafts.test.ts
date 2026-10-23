@@ -28,6 +28,7 @@ describe("lessonDraft", () => {
             startTime: "7:00 PM", level: "Beginner", price: "$10", substitute: null,
             lessons: [{ time: "7:00 PM", dance: "Copperhead Road", level: "Beginner" }],
             style: { theme: "neon", photo: "dance-floor", headline: "Tonight!", cta: "Come dance with us!" },
+            ymd: "2026-10-19", endTime: "9:00 PM", address: "900 E Colfax Ave, Denver", note: null,
         });
     });
 

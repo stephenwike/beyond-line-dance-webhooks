@@ -18,7 +18,7 @@ Each class has its own style ([lib/styles.ts](lib/styles.ts)): a color theme, a 
 
 ## WhatsApp
 
-Meta has no API for posting to a WhatsApp Channel, and its Groups API needs an Official Business Account and only reaches groups of up to 8 people that it creates itself. So posts reach the WhatsApp group and Updates channel by a one-tap share: after each post publishes on Facebook, a "Share to WhatsApp" phone alert opens `/share/<post id>` (a signed link), which copies the caption and hands the image and a WhatsApp-formatted caption (bold first line, no hashtags) to the phone's share sheet. Switch it off with `rules.whatsappShare` in [lib/config.ts](lib/config.ts). If Meta adds Channel posting or opens up groups, this is where an automatic post would go.
+Meta has no API for posting to a WhatsApp Channel, and its Groups API needs an Official Business Account and only reaches groups of up to 8 people that it creates itself. So posts reach the WhatsApp group and Updates channel by a one-tap share: after each post publishes on Facebook, a "Share to WhatsApp" phone alert opens `/share/<post id>` (a signed link), which copies the caption and hands the image and a WhatsApp-formatted caption (bold first line, no hashtags) to the phone's share sheet. WhatsApp gets its own image, styled after the event cards on beyondlinedance.com ([lib/eventCard.tsx](lib/eventCard.tsx), `/api/card/<id>?variant=whatsapp`): a white card with a calendar badge, price and venue, and lessons colored by level. Switch it off with `rules.whatsappShare` in [lib/config.ts](lib/config.ts). If Meta adds Channel posting or opens up groups, this is where an automatic post would go.
 
 ## Safety rails
 

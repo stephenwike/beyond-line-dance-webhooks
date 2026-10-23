@@ -38,12 +38,13 @@ type Palette = ReturnType<typeof palette>;
 /** Everything a layout needs to draw: colors, the logo and the photo. */
 interface Look { c: Palette; logo: string; photo: string }
 
-type Fonts = NonNullable<NonNullable<ConstructorParameters<typeof ImageResponse>[1]>["fonts"]>;
+export type Fonts = NonNullable<NonNullable<ConstructorParameters<typeof ImageResponse>[1]>["fonts"]>;
 
-const asset = (...p: string[]) => readFile(join(process.cwd(), "assets", ...p));
+export const asset = (...p: string[]) => readFile(join(process.cwd(), "assets", ...p));
 
+/** Fonts and the white logo, loaded once. Also used by the WhatsApp event card (lib/eventCard.tsx). */
 let shared: Promise<{ fonts: Fonts; logo: string }> | null = null;
-function loadShared() {
+export function loadShared() {
     shared ??= (async () => {
         const [medium, semi, extra, blackItalic, brush, logo] = await Promise.all([
             asset("fonts", "Montserrat-Medium.ttf"), asset("fonts", "Montserrat-SemiBold.ttf"),

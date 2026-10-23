@@ -23,10 +23,15 @@ export interface CardStyle { theme: ThemeId; photo: PhotoId; headline: string; c
 export type CardData = (
     | {
         type: "lesson"; when: "Tonight" | "Today"; date: string; title: string; venue: string | null; startTime: string;
+        /** For the WhatsApp event card (lib/eventCard.tsx); absent on older posts. */
+        ymd?: string; endTime?: string | null; address?: string | null; note?: string | null;
         level: string | null; price: string | null; lessons: CardLesson[]; substitute: string | null;
     }
-    | { type: "cancellation"; date: string; title: string; venue: string | null; startTime: string; note: string | null }
-    | { type: "weekly"; eyebrow: string; range: string; days: { day: string; classes: CardClass[] }[] }
+    | {
+        type: "cancellation"; date: string; title: string; venue: string | null; startTime: string; note: string | null;
+        ymd?: string; endTime?: string | null; address?: string | null; level?: string | null; price?: string | null;
+    }
+    | { type: "weekly"; eyebrow: string; range: string; days: { day: string; ymd?: string; classes: CardClass[] }[] }
 ) & { style?: CardStyle };
 
 export interface Draft {
@@ -57,6 +62,11 @@ const hashtags = (...styles: PostStyle[]) => [...new Set([...brand.hashtags, ...
 
 /** "2026-10-26" → "MONDAY OCT 26", the image's date line. */
 const cardDate = (ymd: string) => formatLongDate(ymd).replace(",", "").toUpperCase();
+
+/** "8:00 PM", or null when the class's end isn't known. */
+function endTimeOf(o: Occurrence): string | null {
+    return o.endAt ? formatTime12(zonedParts(o.endAt, o.timeZone).hhmm) : null;
+}
 
 function lessonLabel(o: Occurrence, startAt: Date | null, dance: string | null): string {
     const at = startAt ? formatTime12(zonedParts(startAt, o.timeZone).hhmm) : "(no time)";
@@ -114,6 +124,7 @@ export function lessonDraft(o: Occurrence, siteUrl: string, style: PostStyle = D
         type: "lesson", when: when === "tonight" ? "Tonight" : "Today", date: cardDate(o.date),
         title: o.title, venue: o.venueName, startTime: start,
         level: o.level, price: o.price, lessons: cardLessons, substitute: sub,
+        ymd: o.date, endTime: endTimeOf(o), address: o.venueAddress, note: o.specialNote?.trim() || null,
         style: { theme: style.theme, photo: style.photo, headline: fillStyleText(style.headline, when, o.venueName), cta: fillStyleText(style.cta, when, o.venueName) },
     };
     return finish("lesson", message, card, issues);
@@ -141,6 +152,7 @@ export function cancellationDraft(o: Occurrence, siteUrl: string, classStyle: Po
     const card: CardData = {
         type: "cancellation", date: cardDate(o.date),
         title: o.title, venue: o.venueName, startTime: start, note,
+        ymd: o.date, endTime: endTimeOf(o), address: o.venueAddress, level: o.level, price: o.price,
         style: { theme: look.theme, photo: look.photo, headline: "Cancelled", cta: fillStyleText(style.cta, when, o.venueName, o.title) },
     };
     return finish("cancellation", message, card, issues);
@@ -157,6 +169,7 @@ export function weeklyDraft(occurrences: Occurrence[], siteUrl: string, style: P
 
     const days = [...byDay.entries()].map(([date, list]) => ({
         day: formatShortDate(date).toUpperCase(),
+        ymd: date,
         classes: list.map((o): CardClass => ({
             time: formatTime12(localStartTime(o)), title: o.title, venue: o.venueName,
             detail: [o.level, o.price].filter(Boolean).join(" · "),

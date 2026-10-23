@@ -4,6 +4,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { renderCard } from "../lib/card";
+import { renderEventCard } from "../lib/eventCard";
 import { cancellationDraft, lessonDraft, weeklyDraft } from "../lib/drafts";
 import { lesson, occurrence } from "../lib/fixtures";
 import { resolveStyle, SUGGESTED_STYLES } from "../lib/styles";
@@ -47,6 +48,13 @@ async function main() {
     for (const id of Object.keys(SUGGESTED_STYLES)) {
         const [slug, title, venueName, level] = titles[id] ?? [id, "Class", "Venue", "All Levels"];
         (drafts as Record<string, ReturnType<typeof lessonDraft>>)[`lesson-${slug}`] = lessonDraft({ ...planned, eventTypeId: id, title, venueName, level }, SITE, resolveStyle(id));
+    }
+
+    // The WhatsApp event-card versions of the three base posts.
+    for (const name of ["lesson", "cancellation", "weekly"] as const) {
+        const png = Buffer.from(await (await renderEventCard(drafts[name].card)).arrayBuffer());
+        await writeFile(join(out, `wa-${name}.png`), png);
+        console.log(`wa-${name}: ${join(out, "wa-" + name)}.png (${Math.round(png.length / 1024)} KB)`);
     }
 
     for (const [name, d] of Object.entries(drafts)) {
