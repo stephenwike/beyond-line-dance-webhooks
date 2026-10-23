@@ -12,7 +12,8 @@
     "fb:page-token": "tsx --env-file=.env.local scripts/fb-page-token.ts",
     "fb:check-events": "tsx --env-file=.env.local scripts/check-fb-events.ts",
     "tick": "tsx --env-file=.env.local scripts/tick.ts",
-    "test-alert": "tsx --env-file=.env.local scripts/test-alert.ts"
+    "test-alert": "tsx --env-file=.env.local scripts/test-alert.ts",
+    "preview": "tsx --env-file=.env.local scripts/preview.ts"
   },
   "dependencies": {
     "@ldco/database": "github:stephenwike/ldco-database-contract",

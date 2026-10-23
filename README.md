@@ -61,6 +61,7 @@ BLD_DB_NAME=bld
 - `pnpm test`: unit tests (schedule projection, drafts and checks, publishing rules)
 - `pnpm tick`: one tick against `MONGODB_URI` from `.env.local`
 - `pnpm test-alert`: send a sample phone alert
+- `pnpm preview`: read-only list of the next 7 days of classes and what will happen to each post (`MONGODB_URI=<live> pnpm preview` for live)
 - `pnpm typecheck`
 
 ## Not done yet
