@@ -13,7 +13,9 @@ import { cancellationDraft, lessonDraft, weeklyDraft, type CardData, type Draft,
 import { getBldDb, getLessonsDb, getMainDb } from "./db";
 import { env } from "./env";
 import { publishToPage } from "./facebook";
+import { failedAlert, waitingAlert } from "./alerts";
 import { sendPhoneAlert } from "./notify";
+import { cardUrl } from "./urls";
 import { loadOccurrences, localStartTime, type Occurrence } from "./schedule";
 import { addDays, formatShortDate, formatTime12, mondayOf, zonedParts } from "./time";
 
@@ -143,25 +145,9 @@ export async function publishPost(col: Collection<SocialPost>, id: string, from:
     } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
         await col.updateOne({ _id: id }, { $set: { status: "failed", error, updatedAt: new Date() } });
-        await sendPhoneAlert({
-            title: "Facebook post failed",
-            message: `${claimed.label}: ${error}`,
-            url: adminLink(id), urlTitle: "Open Social Posts", urgent: true,
-        }).catch((err) => console.error("Alert failed", err));
+        await sendPhoneAlert(failedAlert(claimed, error)).catch((err) => console.error("Alert failed", err));
     }
     return col.findOne({ _id: id });
-}
-
-/** Where Facebook (and the admin preview) fetch a post's image; the version changes with the plan. */
-export function cardUrl(p: Pick<SocialPost, "_id" | "planHash">): string {
-    const base = env.publicUrl();
-    if (!base) throw new Error("PUBLIC_URL is not set, so Facebook can't fetch the post image");
-    return `${base}/api/card/${p._id}?v=${p.planHash}`;
-}
-
-function adminLink(id: string): string | undefined {
-    const base = env.adminUrl();
-    return base ? `${base}/social-posts?id=${id}` : undefined;
 }
 
 /**
@@ -274,13 +260,7 @@ export async function tick(now = new Date()): Promise<TickReport> {
                 await closeOpen(col, { _id: p._id }, "expired", "Not approved in time, so it wasn't posted", now);
                 report.expired++;
             } else if (step === "alert") {
-                const reasons = p.kind === "cancellation" ? ["Cancellations always need your OK"] : p.issues.map((i) => i.message);
-                const by = formatTime12(zonedParts(p.expireAt, tz).hhmm);
-                const sent = await sendPhoneAlert({
-                    title: "Facebook post waiting on you",
-                    message: `${p.label}\n${reasons.join("\n")}\nIt won't be posted unless you approve it by ${by}.`,
-                    url: adminLink(p._id), urlTitle: "Review post", urgent: true,
-                });
+                const sent = await sendPhoneAlert(waitingAlert(p, tz));
                 await col.updateOne({ _id: p._id }, { $set: { alertedAt: now, updatedAt: now, ...(sent ? {} : { note: "No phone alert channel configured" }) } });
                 report.alerted++;
             }
