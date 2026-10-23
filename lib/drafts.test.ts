@@ -27,6 +27,7 @@ describe("lessonDraft", () => {
             type: "lesson", when: "Tonight", date: "MONDAY OCT 19", title: "Charlies Country", venue: "Charlie's Denver",
             startTime: "7:00 PM", level: "Beginner", price: "$10", substitute: null,
             lessons: [{ time: "7:00 PM", dance: "Copperhead Road", level: "Beginner" }],
+            style: { theme: "neon", photo: "dance-floor", headline: "Tonight!", cta: "Come dance with us!" },
         });
     });
 

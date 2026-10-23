@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { renderCard } from "../lib/card";
 import { cancellationDraft, lessonDraft, weeklyDraft } from "../lib/drafts";
 import { lesson, occurrence } from "../lib/fixtures";
+import { resolveStyle, SUGGESTED_STYLES } from "../lib/styles";
 
 const SITE = "https://beyondlinedance.com";
 const at = (iso: string) => new Date(iso);
@@ -35,6 +36,19 @@ async function main() {
         cancellation: cancellationDraft({ ...planned, isCancelled: true, cancelNote: "Charlie's is closed for a private event tonight." }, SITE),
         weekly: weeklyDraft(week, SITE),
     };
+    // One lesson card per class style, titled like the real classes.
+    const titles: Record<string, [string, string, string, string]> = {
+        "694f56089fad7f908b6be167": ["country", "Charlies Country", "Charlie's Denver", "All Levels"],
+        "6adbc9571ee36b88df899dbd": ["popular", "Popular Line Dance", "Charlie's Denver", "All Levels"],
+        "694f56089fad7f908b6be168": ["alternative", "Alternative Line Dance", "Charlie's Denver", "Improver to Intermediate"],
+        "69aa4c690a7750f056e60746": ["glenarm", "Glenarm Line Dance Class", "Glenarm Recreation Center", "Beginner & Improver"],
+        "694f56089fad7f908b6be169": ["barnum", "Barnum Line Dance", "Barnum Rec Center", "Intermediate to Advanced"],
+    };
+    for (const id of Object.keys(SUGGESTED_STYLES)) {
+        const [slug, title, venueName, level] = titles[id] ?? [id, "Class", "Venue", "All Levels"];
+        (drafts as Record<string, ReturnType<typeof lessonDraft>>)[`lesson-${slug}`] = lessonDraft({ ...planned, eventTypeId: id, title, venueName, level }, SITE, resolveStyle(id));
+    }
+
     for (const [name, d] of Object.entries(drafts)) {
         const png = Buffer.from(await (await renderCard(d.card)).arrayBuffer());
         await writeFile(join(out, `${name}.png`), png);

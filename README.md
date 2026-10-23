@@ -12,6 +12,10 @@ Facebook Events aren't created. Meta's Graph API doesn't allow creating, updatin
 
 Each post is a branded 1080×1350 image ([lib/card.tsx](lib/card.tsx), in the style of the Intermediate Social poster: your logo, the purple dance-floor photo, Montserrat with a Kaushan brush script, a neon price badge) with the text as its caption ([lib/drafts.ts](lib/drafts.ts)). Facebook downloads the image from `/api/card/<post id>`, which is also the preview on the admin's Social Posts page. Hashtags and the "No partner needed" line are in `brand` in [lib/config.ts](lib/config.ts).
 
+## Class styles
+
+Each class has its own style ([lib/styles.ts](lib/styles.ts)): a color theme, a background photo from `assets/photos`, the headline and call to action on the image, and the caption's first line and extra hashtags. Classes start from a suggested style (`SUGGESTED_STYLES`), and the admin's **Post Styles** page overrides it field by field, with a live preview; saved styles live in `bld.post_styles` (one document per event type). Weekly outlines use the default style. To add a photo, put a 1080px-wide JPEG in `assets/photos` and list it in `PHOTOS`.
+
 ## Safety rails
 
 Every 30 minutes `/api/cron/tick` drafts the posts that are due and runs the checks in [lib/config.ts](lib/config.ts):
@@ -71,5 +75,7 @@ BLD_DB_NAME=bld
 - `pnpm typecheck`
 
 ## Not done yet
+- **Intermediate Line Dance Social (quarterly):** it lives in the registration system (`ldco-events`), not the class schedule, so it isn't posted. It needs its own job: promo posts weeks ahead plus a reminder, with the registration link.
+- **Photo uploads:** new photos are added as files in `assets/photos` for now; an upload on the Post Styles page would need file storage (for example Vercel Blob).
 - **Hidden posts:** a viewer in the admin listing every hidden test post with one-click cleanup (see the admin's `docs/TODO.md`). Until then, `pnpm e2e -- --cleanup` deletes them.
-- **Contract:** `bld.social_posts` isn't in `@ldco/database` yet. Add it in `../ldco-database` (insert a document locally, `contract:infer`, add it to `purposes.ts` and `descriptions.ts`, bump the version, `contract:lock`, `package:build`).
+- **Contract:** `bld.social_posts`, `bld.post_styles` and `bld.poster_runs` aren't in `@ldco/database` yet. Add it in `../ldco-database` (insert a document locally, `contract:infer`, add it to `purposes.ts` and `descriptions.ts`, bump the version, `contract:lock`, `package:build`).

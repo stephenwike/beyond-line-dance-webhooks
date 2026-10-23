@@ -4,6 +4,7 @@
 import { createHash } from "node:crypto";
 import { brand, rules, type CheckId } from "./config";
 import { localStartTime, type Occurrence } from "./schedule";
+import { DEFAULT_STYLE, fillStyleText, type PhotoId, type PostStyle, type ThemeId } from "./styles";
 import { formatLongDate, formatShortDate, formatTime12, zonedParts } from "./time";
 
 /** "test" posts come from scripts/e2e-test.ts and always publish hidden. */
@@ -15,14 +16,18 @@ export interface Issue { check: CheckId | "planChanged" | "test"; message: strin
 export interface CardLesson { time: string; dance: string; level: string | null }
 export interface CardClass { time: string; title: string; venue: string | null; detail: string; cancelled: boolean; substitute: string | null }
 
+/** The class's style, resolved for this post (lib/styles.ts). Absent on posts drafted before styles. */
+export interface CardStyle { theme: ThemeId; photo: PhotoId; headline: string; cta: string }
+
 /** What the image shows (lib/card.tsx draws it). */
-export type CardData =
+export type CardData = (
     | {
         type: "lesson"; when: "Tonight" | "Today"; date: string; title: string; venue: string | null; startTime: string;
         level: string | null; price: string | null; lessons: CardLesson[]; substitute: string | null;
     }
     | { type: "cancellation"; date: string; title: string; venue: string | null; startTime: string; note: string | null }
-    | { type: "weekly"; eyebrow: string; range: string; days: { day: string; classes: CardClass[] }[] };
+    | { type: "weekly"; eyebrow: string; range: string; days: { day: string; classes: CardClass[] }[] }
+) & { style?: CardStyle };
 
 export interface Draft {
     kind: PostKind;
@@ -47,7 +52,8 @@ function join(...parts: (string | null | undefined | false)[]): string {
     return parts.filter(Boolean).join("\n\n");
 }
 
-const hashtags = () => brand.hashtags.join(" ");
+/** Brand hashtags, then the class's own, without repeats. */
+const hashtags = (style: PostStyle) => [...new Set([...brand.hashtags, ...style.hashtags])].join(" ");
 
 /** "2026-10-26" → "MONDAY OCT 26", the image's date line. */
 const cardDate = (ymd: string) => formatLongDate(ymd).replace(",", "").toUpperCase();
@@ -58,7 +64,7 @@ function lessonLabel(o: Occurrence, startAt: Date | null, dance: string | null):
 }
 
 /** The pre-class post with the night's lesson plan. */
-export function lessonDraft(o: Occurrence, siteUrl: string): Draft {
+export function lessonDraft(o: Occurrence, siteUrl: string, style: PostStyle = DEFAULT_STYLE): Draft {
     const issues: Issue[] = [];
     const lessons = (o.lessons ?? [])
         .filter((l) => !l.skipped)
@@ -91,11 +97,10 @@ export function lessonDraft(o: Occurrence, siteUrl: string): Draft {
 
     const start = formatTime12(localStartTime(o));
     const when = Number(localStartTime(o).slice(0, 2)) >= 17 ? "tonight" : "today";
-    const at = o.venueName ? ` at ${o.venueName}` : "";
     const sub = o.substitute?.trim() || null;
 
     const message = join(
-        `💃 Line dancing ${when}${at}! ✨`,
+        fillStyleText(style.hook, when, o.venueName),
         `${o.title} · starts ${start}\n${[o.level, o.price, brand.welcome].filter(Boolean).join(" · ")}`,
         lessonLines.length > 0 && `🎶 What we're learning:\n${lessonLines.join("\n")}`,
         sub && `👋 ${sub} is teaching ${when}.`,
@@ -103,18 +108,19 @@ export function lessonDraft(o: Occurrence, siteUrl: string): Draft {
         (o.venueName || o.venueAddress) && `📍 ${[o.venueName, o.venueAddress].filter(Boolean).join(", ")}`,
         stepsheets.length > 0 && `📄 Step sheets:\n${stepsheets.join("\n")}`,
         `📅 Full schedule: ${siteUrl}/calendar`,
-        hashtags(),
+        hashtags(style),
     );
     const card: CardData = {
         type: "lesson", when: when === "tonight" ? "Tonight" : "Today", date: cardDate(o.date),
         title: o.title, venue: o.venueName, startTime: start,
         level: o.level, price: o.price, lessons: cardLessons, substitute: sub,
+        style: { theme: style.theme, photo: style.photo, headline: fillStyleText(style.headline, when, o.venueName), cta: fillStyleText(style.cta, when, o.venueName) },
     };
     return finish("lesson", message, card, issues);
 }
 
 /** A cancellation notice. Always held for approval (see posts.ts). */
-export function cancellationDraft(o: Occurrence, siteUrl: string): Draft {
+export function cancellationDraft(o: Occurrence, siteUrl: string, style: PostStyle = DEFAULT_STYLE): Draft {
     const issues: Issue[] = [];
     if (!o.venueName) issues.push({ check: "venueMissing", message: "Venue not found" });
     const start = formatTime12(localStartTime(o));
@@ -125,17 +131,18 @@ export function cancellationDraft(o: Occurrence, siteUrl: string): Draft {
         note,
         "Sorry for the change, we'll see you at the next one! 💜",
         `📅 This week's other classes: ${siteUrl}/calendar`,
-        hashtags(),
+        hashtags(style),
     );
     const card: CardData = {
         type: "cancellation", date: cardDate(o.date),
         title: o.title, venue: o.venueName, startTime: start, note,
+        style: { theme: style.theme, photo: style.photo, headline: "Cancelled", cta: "See you next time!" },
     };
     return finish("cancellation", message, card, issues);
 }
 
 /** The Monday outline: times and places only, no lesson details. */
-export function weeklyDraft(occurrences: Occurrence[], siteUrl: string): Draft {
+export function weeklyDraft(occurrences: Occurrence[], siteUrl: string, style: PostStyle = DEFAULT_STYLE): Draft {
     const issues: Issue[] = [];
     const byDay = new Map<string, Occurrence[]>();
     for (const o of occurrences) {
@@ -165,7 +172,11 @@ export function weeklyDraft(occurrences: Occurrence[], siteUrl: string): Draft {
         blocks.length ? blocks.join("\n\n") : "No classes this week.",
         `${brand.welcome}, everyone is welcome! Lesson plans post a few hours before each class.`,
         `📅 Full schedule: ${siteUrl}/calendar`,
-        hashtags(),
+        hashtags(style),
     );
-    return finish("weekly_outline", message, { type: "weekly", eyebrow: "THIS WEEK", range, days }, issues);
+    const card: CardData = {
+        type: "weekly", eyebrow: "THIS WEEK", range, days,
+        style: { theme: style.theme, photo: style.photo, headline: "Line Dance Classes", cta: style.cta },
+    };
+    return finish("weekly_outline", message, card, issues);
 }

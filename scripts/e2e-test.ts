@@ -15,6 +15,7 @@ import { env } from "../lib/env";
 import { deletePost } from "../lib/facebook";
 import { posts, type SocialPost } from "../lib/posts";
 import { loadOccurrences, type Occurrence } from "../lib/schedule";
+import { loadSavedStyles, resolveStyle } from "../lib/styles";
 import { addDays, formatShortDate, formatTime12, zonedParts } from "../lib/time";
 
 const PROD_URL = (process.env.PROD_URL || "https://beyond-line-dance-webhooks.vercel.app").replace(/\/$/, "");
@@ -52,7 +53,7 @@ async function tickProduction() {
 async function create(auto: boolean) {
     const col = posts(await getBldDb());
     const o = await sampleOccurrence();
-    const draft = lessonDraft(o, env.siteUrl());
+    const draft = lessonDraft(o, env.siteUrl(), resolveStyle(o.eventTypeId, await loadSavedStyles(await getBldDb())));
     const now = new Date();
     const id = new ObjectId().toHexString();
     const doc: SocialPost = {

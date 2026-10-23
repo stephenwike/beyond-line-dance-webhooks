@@ -17,6 +17,7 @@ import { failedAlert, waitingAlert } from "./alerts";
 import { sendPhoneAlert } from "./notify";
 import { cardUrl } from "./urls";
 import { loadOccurrences, localStartTime, type Occurrence } from "./schedule";
+import { loadSavedStyles, resolveStyle } from "./styles";
 import { addDays, formatShortDate, formatTime12, mondayOf, zonedParts } from "./time";
 
 export type PostStatus = "pending" | "approved" | "publishing" | "published" | "skipped" | "expired" | "failed";
@@ -166,7 +167,8 @@ export async function refreshPost(id: string, now = new Date()): Promise<SocialP
     const o = occurrences.find((x) => (p.eventId && x.eventId === p.eventId) || (p.eventTypeId && x.eventTypeId === p.eventTypeId));
     if (!o) return p;
 
-    const draft = p.kind === "cancellation" ? cancellationDraft(o, env.siteUrl()) : lessonDraft(o, env.siteUrl());
+    const style = resolveStyle(o.eventTypeId, await loadSavedStyles(bldDb));
+    const draft = p.kind === "cancellation" ? cancellationDraft(o, env.siteUrl(), style) : lessonDraft(o, env.siteUrl(), style);
     // A test post stays held whatever the plan says.
     const issues = [...p.issues.filter((i) => i.check === "test"), ...draft.issues];
     await col.updateOne({ _id: id, status: { $in: OPEN } }, {
@@ -187,6 +189,7 @@ export async function tick(now = new Date()): Promise<TickReport> {
 
     const tz = env.defaultTimeZone();
     const local = zonedParts(now, tz);
+    const savedStyles = await loadSavedStyles(bldDb);
     const monday = mondayOf(local.ymd);
     const occurrences = await loadOccurrences(lessonsDb, mainDb, {
         instructorId: env.instructorId(), defaultTimeZone: tz,
@@ -211,7 +214,8 @@ export async function tick(now = new Date()): Promise<TickReport> {
         }
         if (now >= expireAt) continue;
 
-        const draft = kind === "lesson" ? lessonDraft(o, siteUrl) : cancellationDraft(o, siteUrl);
+        const style = resolveStyle(o.eventTypeId, savedStyles);
+        const draft = kind === "lesson" ? lessonDraft(o, siteUrl, style) : cancellationDraft(o, siteUrl, style);
         count(await upsertDraft(col, now, {
             key, eventTypeId: o.eventTypeId, eventId: o.eventId, date: o.date, startAt: o.startAt,
             label: occurrenceLabel(o), alertAt: new Date(start - r.alertHoursBefore * HOUR), expireAt,
