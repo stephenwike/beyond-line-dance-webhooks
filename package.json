@@ -1,0 +1,31 @@
+{
+  "name": "beyond-line-dance-webhooks",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3300",
+    "build": "next build",
+    "start": "next start -p 3300",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "ldco-db-check",
+    "fb:page-token": "tsx --env-file=.env.local scripts/fb-page-token.ts",
+    "fb:check-events": "tsx --env-file=.env.local scripts/check-fb-events.ts",
+    "tick": "tsx --env-file=.env.local scripts/tick.ts",
+    "test-alert": "tsx --env-file=.env.local scripts/test-alert.ts"
+  },
+  "dependencies": {
+    "@ldco/database": "github:stephenwike/ldco-database-contract",
+    "mongodb": "^7.1.0",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "tsx": "^4.20.3",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
