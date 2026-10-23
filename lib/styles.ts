@@ -50,8 +50,8 @@ export const DEFAULT_STYLE: PostStyle = {
 export const SUGGESTED_STYLES: Record<string, Partial<PostStyle>> = {
     // Charlies Country: Thursday & Saturday nights
     "694f56089fad7f908b6be167": { theme: "sunset", photo: "rodeo-sunset", headline: "Country Night!", hook: "👢 Country dance night at {venue}, {when}!", cta: "Grab your boots!", hashtags: ["#CountryDance"] },
-    // Popular Line Dance: Monday nights at Charlie's
-    "6adbc9571ee36b88df899dbd": { theme: "neon", photo: "charlies-2", hook: "💃 Popular line dancing {when} at {venue}! ✨" },
+    // Line Dance Party: Monday nights at Charlie's
+    "6adbc9571ee36b88df899dbd": { theme: "neon", photo: "charlies-2", headline: "Party Tonight!", hook: "🎉 Line dance party {when} at {venue}! ✨", hashtags: ["#LineDanceParty"] },
     // Alternative Line Dance: Saturday afternoons at Charlie's
     "694f56089fad7f908b6be168": { theme: "ruby", photo: "charlies-1", hook: "🎧 Alternative line dance {when} at {venue}!", hashtags: ["#AlternativeLineDance"] },
     // Glenarm: Beginner & Improver

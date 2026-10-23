@@ -40,7 +40,7 @@ async function main() {
     // One lesson card per class style, titled like the real classes.
     const titles: Record<string, [string, string, string, string]> = {
         "694f56089fad7f908b6be167": ["country", "Charlies Country", "Charlie's Denver", "All Levels"],
-        "6adbc9571ee36b88df899dbd": ["popular", "Popular Line Dance", "Charlie's Denver", "All Levels"],
+        "6adbc9571ee36b88df899dbd": ["party", "Line Dance Party", "Charlie's Denver", "All Levels"],
         "694f56089fad7f908b6be168": ["alternative", "Alternative Line Dance", "Charlie's Denver", "Improver to Intermediate"],
         "69aa4c690a7750f056e60746": ["glenarm", "Glenarm Line Dance Class", "Glenarm Recreation Center", "Beginner & Improver"],
         "694f56089fad7f908b6be169": ["barnum", "Barnum Line Dance", "Barnum Rec Center", "Intermediate to Advanced"],
