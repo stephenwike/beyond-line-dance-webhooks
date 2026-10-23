@@ -14,7 +14,7 @@ Each post is a branded 1080×1350 image ([lib/card.tsx](lib/card.tsx), in the st
 
 ## Class styles
 
-Each class has its own style ([lib/styles.ts](lib/styles.ts)): a color theme, a background photo from `assets/photos`, the headline and call to action on the image, and the caption's first line and extra hashtags. Classes start from a suggested style (`SUGGESTED_STYLES`), and the admin's **Post Styles** page overrides it field by field, with a live preview; saved styles live in `bld.post_styles` (one document per event type). Weekly outlines use the default style. To add a photo, put a 1080px-wide JPEG in `assets/photos` and list it in `PHOTOS`.
+Each class has its own style ([lib/styles.ts](lib/styles.ts)): a color theme, a background photo from `assets/photos`, the headline and call to action on the image, and the caption's first line and extra hashtags. Classes start from a suggested style (`SUGGESTED_STYLES`), and the admin's **Ads** page (Social → Ads) overrides it field by field, with a live preview; saved styles live in `bld.post_styles` (one document per event type). Cancellations and the weekly schedule have their own styles on the same page (`type:cancellation`, `type:weekly_outline`); a cancellation uses the cancelled class's colors and photo unless you turn that off. To add a photo, put a 1080px-wide JPEG in `assets/photos` and list it in `PHOTOS`.
 
 ## Safety rails
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { lessonDraft } from "./drafts";
+import { cancellationDraft, lessonDraft, weeklyDraft } from "./drafts";
 import { lesson, occurrence } from "./fixtures";
-import { DEFAULT_STYLE, fillStyleText, resolveStyle } from "./styles";
+import { DEFAULT_STYLE, fillStyleText, resolveStyle, resolveTypeStyle } from "./styles";
 
 const COUNTRY = "694f56089fad7f908b6be167";
 
@@ -37,5 +37,24 @@ describe("styled drafts", () => {
     it("changes the planHash when the style changes, so open posts get redrawn", () => {
         const o = occurrence();
         expect(lessonDraft(o, "https://x", resolveStyle(COUNTRY)).planHash).not.toBe(lessonDraft(o, "https://x").planHash);
+    });
+});
+
+describe("ad type styles", () => {
+    it("draws a cancellation in the class's look unless matchClass is off", () => {
+        const o = occurrence({ isCancelled: true });
+        const cls = resolveStyle(COUNTRY);
+        const matched = cancellationDraft(o, "https://x", cls, resolveTypeStyle("cancellation"));
+        expect(matched.card.style).toMatchObject({ theme: "sunset", photo: "rodeo-sunset", cta: "See you next time!" });
+        const fixed = cancellationDraft(o, "https://x", cls, resolveTypeStyle("cancellation", new Map([["type:cancellation", { matchClass: false, theme: "ruby", photo: "charlies-1" }]])));
+        expect(fixed.card.style).toMatchObject({ theme: "ruby", photo: "charlies-1" });
+        expect(fixed.message).toMatch(/^⚠️ Class cancelled: Charlies Country at Charlie's Denver/);
+    });
+
+    it("uses the weekly schedule style's first line, headline and call to action", () => {
+        const saved = new Map([["type:weekly_outline", { hook: "Your week of line dance!", headline: "Dance Week", cta: "See you there!", theme: "fresh" as const }]]);
+        const d = weeklyDraft([occurrence()], "https://x", resolveTypeStyle("weekly_outline", saved));
+        expect(d.message).toMatch(/^Your week of line dance!/);
+        expect(d.card.style).toEqual({ theme: "fresh", photo: "dance-floor", headline: "Dance Week", cta: "See you there!" });
     });
 });

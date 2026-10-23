@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 import { brand, rules, type CheckId } from "./config";
 import { localStartTime, type Occurrence } from "./schedule";
-import { DEFAULT_STYLE, fillStyleText, type PhotoId, type PostStyle, type ThemeId } from "./styles";
+import { DEFAULT_STYLE, fillStyleText, TYPE_DEFAULTS, type PhotoId, type PostStyle, type ThemeId } from "./styles";
 import { formatLongDate, formatShortDate, formatTime12, zonedParts } from "./time";
 
 /** "test" posts come from scripts/e2e-test.ts and always publish hidden. */
@@ -52,8 +52,8 @@ function join(...parts: (string | null | undefined | false)[]): string {
     return parts.filter(Boolean).join("\n\n");
 }
 
-/** Brand hashtags, then the class's own, without repeats. */
-const hashtags = (style: PostStyle) => [...new Set([...brand.hashtags, ...style.hashtags])].join(" ");
+/** Brand hashtags, then the styles' own, without repeats. */
+const hashtags = (...styles: PostStyle[]) => [...new Set([...brand.hashtags, ...styles.flatMap((s) => s.hashtags)])].join(" ");
 
 /** "2026-10-26" → "MONDAY OCT 26", the image's date line. */
 const cardDate = (ymd: string) => formatLongDate(ymd).replace(",", "").toUpperCase();
@@ -100,7 +100,7 @@ export function lessonDraft(o: Occurrence, siteUrl: string, style: PostStyle = D
     const sub = o.substitute?.trim() || null;
 
     const message = join(
-        fillStyleText(style.hook, when, o.venueName),
+        fillStyleText(style.hook, when, o.venueName, o.title),
         `${o.title} · starts ${start}\n${[o.level, o.price, brand.welcome].filter(Boolean).join(" · ")}`,
         lessonLines.length > 0 && `🎶 What we're learning:\n${lessonLines.join("\n")}`,
         sub && `👋 ${sub} is teaching ${when}.`,
@@ -119,30 +119,35 @@ export function lessonDraft(o: Occurrence, siteUrl: string, style: PostStyle = D
     return finish("lesson", message, card, issues);
 }
 
-/** A cancellation notice. Always held for approval (see posts.ts). */
-export function cancellationDraft(o: Occurrence, siteUrl: string, style: PostStyle = DEFAULT_STYLE): Draft {
+/**
+ * A cancellation notice. Always held for approval (see posts.ts). The cancellation style sets the wording;
+ * the look is the class's (classStyle) unless the cancellation style turns matchClass off.
+ */
+export function cancellationDraft(o: Occurrence, siteUrl: string, classStyle: PostStyle = DEFAULT_STYLE, style: PostStyle = TYPE_DEFAULTS.cancellation): Draft {
     const issues: Issue[] = [];
     if (!o.venueName) issues.push({ check: "venueMissing", message: "Venue not found" });
     const start = formatTime12(localStartTime(o));
     const note = o.cancelNote?.trim() || null;
+    const when = Number(localStartTime(o).slice(0, 2)) >= 17 ? "tonight" : "today";
+    const look = style.matchClass === false ? style : classStyle;
     const message = join(
-        `⚠️ Class cancelled: ${o.title}${o.venueName ? ` at ${o.venueName}` : ""}`,
+        fillStyleText(style.hook, when, o.venueName, o.title),
         `${formatLongDate(o.date)} at ${start}`,
         note,
         "Sorry for the change, we'll see you at the next one! 💜",
         `📅 This week's other classes: ${siteUrl}/calendar`,
-        hashtags(style),
+        hashtags(classStyle, style),
     );
     const card: CardData = {
         type: "cancellation", date: cardDate(o.date),
         title: o.title, venue: o.venueName, startTime: start, note,
-        style: { theme: style.theme, photo: style.photo, headline: "Cancelled", cta: "See you next time!" },
+        style: { theme: look.theme, photo: look.photo, headline: "Cancelled", cta: fillStyleText(style.cta, when, o.venueName, o.title) },
     };
     return finish("cancellation", message, card, issues);
 }
 
 /** The Monday outline: times and places only, no lesson details. */
-export function weeklyDraft(occurrences: Occurrence[], siteUrl: string, style: PostStyle = DEFAULT_STYLE): Draft {
+export function weeklyDraft(occurrences: Occurrence[], siteUrl: string, style: PostStyle = TYPE_DEFAULTS.weekly_outline): Draft {
     const issues: Issue[] = [];
     const byDay = new Map<string, Occurrence[]>();
     for (const o of occurrences) {
@@ -168,7 +173,7 @@ export function weeklyDraft(occurrences: Occurrence[], siteUrl: string, style: P
     const dates = occurrences.map((o) => o.date).sort();
     const range = dates.length ? `${formatLongDate(dates[0], true)} – ${formatLongDate(dates[dates.length - 1], true)}` : "";
     const message = join(
-        `🗓️ This week at ${brand.name} 💜`,
+        style.hook,
         blocks.length ? blocks.join("\n\n") : "No classes this week.",
         `${brand.welcome}, everyone is welcome! Lesson plans post a few hours before each class.`,
         `📅 Full schedule: ${siteUrl}/calendar`,
@@ -176,7 +181,7 @@ export function weeklyDraft(occurrences: Occurrence[], siteUrl: string, style: P
     );
     const card: CardData = {
         type: "weekly", eyebrow: "THIS WEEK", range, days,
-        style: { theme: style.theme, photo: style.photo, headline: "Line Dance Classes", cta: style.cta },
+        style: { theme: style.theme, photo: style.photo, headline: style.headline, cta: style.cta },
     };
     return finish("weekly_outline", message, card, issues);
 }

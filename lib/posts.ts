@@ -17,7 +17,7 @@ import { failedAlert, waitingAlert } from "./alerts";
 import { sendPhoneAlert } from "./notify";
 import { cardUrl } from "./urls";
 import { loadOccurrences, localStartTime, type Occurrence } from "./schedule";
-import { loadSavedStyles, resolveStyle } from "./styles";
+import { loadSavedStyles, resolveStyle, resolveTypeStyle } from "./styles";
 import { addDays, formatShortDate, formatTime12, mondayOf, zonedParts } from "./time";
 
 export type PostStatus = "pending" | "approved" | "publishing" | "published" | "skipped" | "expired" | "failed";
@@ -167,8 +167,11 @@ export async function refreshPost(id: string, now = new Date()): Promise<SocialP
     const o = occurrences.find((x) => (p.eventId && x.eventId === p.eventId) || (p.eventTypeId && x.eventTypeId === p.eventTypeId));
     if (!o) return p;
 
-    const style = resolveStyle(o.eventTypeId, await loadSavedStyles(bldDb));
-    const draft = p.kind === "cancellation" ? cancellationDraft(o, env.siteUrl(), style) : lessonDraft(o, env.siteUrl(), style);
+    const saved = await loadSavedStyles(bldDb);
+    const style = resolveStyle(o.eventTypeId, saved);
+    const draft = p.kind === "cancellation"
+        ? cancellationDraft(o, env.siteUrl(), style, resolveTypeStyle("cancellation", saved))
+        : lessonDraft(o, env.siteUrl(), style);
     // A test post stays held whatever the plan says.
     const issues = [...p.issues.filter((i) => i.check === "test"), ...draft.issues];
     await col.updateOne({ _id: id, status: { $in: OPEN } }, {
@@ -215,7 +218,7 @@ export async function tick(now = new Date()): Promise<TickReport> {
         if (now >= expireAt) continue;
 
         const style = resolveStyle(o.eventTypeId, savedStyles);
-        const draft = kind === "lesson" ? lessonDraft(o, siteUrl, style) : cancellationDraft(o, siteUrl, style);
+        const draft = kind === "lesson" ? lessonDraft(o, siteUrl, style) : cancellationDraft(o, siteUrl, style, resolveTypeStyle("cancellation", savedStyles));
         count(await upsertDraft(col, now, {
             key, eventTypeId: o.eventTypeId, eventId: o.eventId, date: o.date, startAt: o.startAt,
             label: occurrenceLabel(o), alertAt: new Date(start - r.alertHoursBefore * HOUR), expireAt,
@@ -241,7 +244,7 @@ export async function tick(now = new Date()): Promise<TickReport> {
             label: `Week of ${formatShortDate(monday)}`,
             alertAt: new Date(createdAt.getTime() + rules.weekly.alertAfterHours * HOUR),
             expireAt: new Date(createdAt.getTime() + rules.weekly.expireAfterHours * HOUR),
-        }, weeklyDraft(week, siteUrl)));
+        }, weeklyDraft(week, siteUrl, resolveTypeStyle("weekly_outline", savedStyles))));
     }
 
     // 4. Act on everything still open.
