@@ -9,7 +9,7 @@
 
 import { ObjectId, type Collection, type Db } from "mongodb";
 import { rules } from "./config";
-import { cancellationDraft, lessonDraft, weeklyDraft, type Draft, type Issue, type PostKind } from "./drafts";
+import { cancellationDraft, lessonDraft, weeklyDraft, type CardData, type Draft, type Issue, type PostKind } from "./drafts";
 import { getBldDb, getLessonsDb, getMainDb } from "./db";
 import { env } from "./env";
 import { publishToPage } from "./facebook";
@@ -43,6 +43,10 @@ export interface SocialPost {
     expireAt: Date;
     alertedAt: Date | null;
     fbPostId: string | null;
+    /** Facebook's link to the published post. */
+    fbPermalink?: string | null;
+    /** The image posted with the text (lib/card.tsx); absent on posts drafted before images existed. */
+    card?: CardData;
     publishedAt: Date | null;
     error: string | null;
     note: string | null;
@@ -101,7 +105,7 @@ async function upsertDraft(
             await col.insertOne({
                 _id: new ObjectId().toHexString(), ...base,
                 kind: draft.kind, status: "pending", message: draft.message, editedMessage: null,
-                issues: draft.issues, planHash: draft.planHash, approvedPlanHash: null,
+                card: draft.card, issues: draft.issues, planHash: draft.planHash, approvedPlanHash: null,
                 alertedAt: null, fbPostId: null, publishedAt: null, error: null, note: null,
                 decidedBy: null, decidedAt: null, createdAt: now, updatedAt: now,
             });
@@ -113,7 +117,7 @@ async function upsertDraft(
     }
     if (!OPEN.includes(existing.status) || existing.planHash === draft.planHash) return "unchanged";
     await col.updateOne({ _id: existing._id, status: { $in: OPEN } }, {
-        $set: { message: draft.message, issues: draft.issues, planHash: draft.planHash, label: base.label, startAt: base.startAt, updatedAt: now },
+        $set: { message: draft.message, card: draft.card, issues: draft.issues, planHash: draft.planHash, label: base.label, startAt: base.startAt, updatedAt: now },
     });
     return "refreshed";
 }
@@ -131,8 +135,11 @@ export async function publishPost(col: Collection<SocialPost>, id: string, from:
     );
     if (!claimed) return null;
     try {
-        const fbPostId = await publishToPage(claimed.editedMessage ?? claimed.message, { hidden: claimed.hidden });
-        await col.updateOne({ _id: id }, { $set: { status: "published", fbPostId, publishedAt: new Date(), error: null, updatedAt: new Date() } });
+        const imageUrl = claimed.card ? cardUrl(claimed) : undefined;
+        const published = await publishToPage(claimed.editedMessage ?? claimed.message, { hidden: claimed.hidden, imageUrl });
+        await col.updateOne({ _id: id }, {
+            $set: { status: "published", fbPostId: published.id, fbPermalink: published.permalink, publishedAt: new Date(), error: null, updatedAt: new Date() },
+        });
     } catch (e) {
         const error = e instanceof Error ? e.message : String(e);
         await col.updateOne({ _id: id }, { $set: { status: "failed", error, updatedAt: new Date() } });
@@ -143,6 +150,13 @@ export async function publishPost(col: Collection<SocialPost>, id: string, from:
         }).catch((err) => console.error("Alert failed", err));
     }
     return col.findOne({ _id: id });
+}
+
+/** Where Facebook (and the admin preview) fetch a post's image; the version changes with the plan. */
+export function cardUrl(p: Pick<SocialPost, "_id" | "planHash">): string {
+    const base = env.publicUrl();
+    if (!base) throw new Error("PUBLIC_URL is not set, so Facebook can't fetch the post image");
+    return `${base}/api/card/${p._id}?v=${p.planHash}`;
 }
 
 function adminLink(id: string): string | undefined {
@@ -170,7 +184,7 @@ export async function refreshPost(id: string, now = new Date()): Promise<SocialP
     // A test post stays held whatever the plan says.
     const issues = [...p.issues.filter((i) => i.check === "test"), ...draft.issues];
     await col.updateOne({ _id: id, status: { $in: OPEN } }, {
-        $set: { message: draft.message, issues, planHash: draft.planHash, eventId: o.eventId, updatedAt: now },
+        $set: { message: draft.message, card: draft.card, issues, planHash: draft.planHash, eventId: o.eventId, updatedAt: now },
     });
     return col.findOne({ _id: id });
 }

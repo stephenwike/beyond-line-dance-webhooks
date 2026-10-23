@@ -64,6 +64,13 @@ export function formatTime12(hhmm: string): string {
     return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
+/** "2026-10-19" → "Monday, Oct 19" (or "Mon, Oct 19" with short) */
+export function formatLongDate(ymd: string, short = false): string {
+    return new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", {
+        timeZone: "UTC", weekday: short ? "short" : "long", month: "short", day: "numeric",
+    });
+}
+
 /** "2026-10-19" → "Mon 10/19" */
 export function formatShortDate(ymd: string): string {
     const names: Record<Dow, string> = { SU: "Sun", MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri", SA: "Sat" };

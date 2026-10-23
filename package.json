@@ -14,7 +14,8 @@
     "tick": "tsx --env-file=.env.local scripts/tick.ts",
     "test-alert": "tsx --env-file=.env.local scripts/test-alert.ts",
     "preview": "tsx --env-file=.env.local scripts/preview.ts",
-    "e2e": "tsx --env-file=.env.local scripts/e2e-test.ts"
+    "e2e": "tsx --env-file=.env.local scripts/e2e-test.ts",
+    "render-cards": "tsx scripts/render-cards.ts"
   },
   "dependencies": {
     "@ldco/database": "github:stephenwike/ldco-database-contract",

@@ -20,7 +20,7 @@ export interface EventDoc {
     substitute?: string | null; substituteInstructorId?: string | null; specialNote?: string | null;
     lessons?: PlannedLesson[];
 }
-export interface VenueDoc { _id: string; venuename?: string; timeZone?: string }
+export interface VenueDoc { _id: string; venuename?: string; venueaddress?: string; city?: string; timeZone?: string }
 
 export interface Occurrence {
     /** `${eventTypeId}|${date}` for a class, `event:${id}` for a special event. */
@@ -34,6 +34,8 @@ export interface Occurrence {
     level: string | null;
     price: string | null;
     venueName: string | null;
+    /** Street address, with the city when it isn't already in it. */
+    venueAddress: string | null;
     isCancelled: boolean;
     cancelNote: string | null;
     substitute: string | null;
@@ -69,6 +71,13 @@ function frequencyRunsOn(f: FrequencyDoc, ymd: string): boolean {
     return false;
 }
 
+function addressOf(v: VenueDoc | undefined): string | null {
+    const street = v?.venueaddress?.trim();
+    if (!street) return null;
+    const city = v?.city?.trim();
+    return city && !street.toLowerCase().includes(city.toLowerCase()) ? `${street}, ${city}` : street;
+}
+
 /** Every class and special event in the range, sorted by start time. Switched-off types are left out (decision 15). */
 export function projectOccurrences(input: ScheduleInput): Occurrence[] {
     const typeById = new Map(input.eventTypes.filter((t) => t.isActive !== false).map((t) => [t._id, t]));
@@ -90,6 +99,7 @@ export function projectOccurrences(input: ScheduleInput): Occurrence[] {
                 startAt: zonedTimeToUtc(ymd, f.startTime, timeZone), timeZone,
                 title: et.title, level: et.level ?? null, price: et.price ?? null,
                 venueName: (et.venueId && venueById.get(et.venueId)?.venuename) || null,
+                venueAddress: addressOf(et.venueId ? venueById.get(et.venueId) : undefined),
                 isCancelled: false, cancelNote: null, substitute: null, substituteInstructorId: null,
                 specialNote: null, lessons: null,
             });
@@ -108,6 +118,7 @@ export function projectOccurrences(input: ScheduleInput): Occurrence[] {
             title: et?.title ?? ev.title ?? "Special event",
             level: et?.level ?? null, price: et?.price ?? null,
             venueName: (venueId && venueById.get(venueId)?.venuename) || null,
+            venueAddress: addressOf(venueId ? venueById.get(venueId) : undefined),
             isCancelled: !!ev.isCancelled, cancelNote: ev.cancelNote ?? null,
             substitute: ev.substitute ?? null, substituteInstructorId: ev.substituteInstructorId ?? null,
             specialNote: ev.specialNote ?? null,
@@ -142,7 +153,7 @@ export async function loadOccurrences(
     for (const e of events) if (e.venueId) venueIds.add(e.venueId);
     const venues = await mainDb.collection("venues")
         .find({ _id: { $in: [...venueIds] } } as object)
-        .project({ venuename: 1, timeZone: 1 }).toArray();
+        .project({ venuename: 1, venueaddress: 1, city: 1, timeZone: 1 }).toArray();
 
     return projectOccurrences({
         eventTypes: eventTypes as unknown as EventTypeDoc[],

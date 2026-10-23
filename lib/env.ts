@@ -9,6 +9,9 @@ export const env = {
     defaultTimeZone: () => process.env.DEFAULT_TIME_ZONE || "America/Denver",
     siteUrl: () => (process.env.SITE_URL || "https://beyondlinedance.com").replace(/\/$/, ""),
     adminUrl: () => (process.env.ADMIN_URL || "").replace(/\/$/, ""),
+    /** This app's public address; Facebook fetches post images from it. */
+    publicUrl: () => (process.env.PUBLIC_URL
+        || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "")).replace(/\/$/, ""),
     /** Only "live" reaches Facebook; anything else is a dry run. */
     publishLive: () => process.env.FACEBOOK_PUBLISH === "live",
     fbPageId: () => required("FB_PAGE_ID"),

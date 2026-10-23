@@ -1,9 +1,10 @@
-// Post text and the checks that decide whether it may publish on its own. Pure: no I/O.
+// Post text, image card data, and the checks that decide whether a post may publish on its own.
+// Pure: no I/O.
 
 import { createHash } from "node:crypto";
-import { rules, type CheckId } from "./config";
+import { brand, rules, type CheckId } from "./config";
 import { localStartTime, type Occurrence } from "./schedule";
-import { formatShortDate, formatTime12, zonedParts } from "./time";
+import { formatLongDate, formatShortDate, formatTime12, zonedParts } from "./time";
 
 /** "test" posts come from scripts/e2e-test.ts and always publish hidden. */
 export type PostKind = "lesson" | "cancellation" | "weekly_outline" | "test";
@@ -11,12 +12,25 @@ export type PostKind = "lesson" | "cancellation" | "weekly_outline" | "test";
 /** "planChanged" is added by posts.ts when the plan changes after you approved it; "test" holds e2e test posts. */
 export interface Issue { check: CheckId | "planChanged" | "test"; message: string }
 
+export interface CardLesson { time: string; dance: string; level: string | null }
+export interface CardClass { time: string; title: string; venue: string | null; detail: string; cancelled: boolean; substitute: string | null }
+
+/** What the image shows (lib/card.tsx draws it). */
+export type CardData =
+    | {
+        type: "lesson"; eyebrow: string; title: string; venue: string | null; startTime: string;
+        level: string | null; price: string | null; lessons: CardLesson[]; substitute: string | null;
+    }
+    | { type: "cancellation"; eyebrow: string; title: string; venue: string | null; startTime: string; note: string | null }
+    | { type: "weekly"; eyebrow: string; range: string; days: { day: string; classes: CardClass[] }[] };
+
 export interface Draft {
     kind: PostKind;
     message: string;
+    card: CardData;
     /** Failed, enabled checks. Any issue holds the post for approval. */
     issues: Issue[];
-    /** Changes whenever the post text changes; approval is tied to it. */
+    /** Changes whenever the post text or image changes; approval is tied to it. */
     planHash: string;
 }
 
@@ -24,10 +38,16 @@ function hash(s: string): string {
     return createHash("sha1").update(s).digest("hex").slice(0, 16);
 }
 
-function finish(kind: PostKind, message: string, all: Issue[]): Draft {
+function finish(kind: PostKind, message: string, card: CardData, all: Issue[]): Draft {
     const issues = all.filter((i) => i.check === "planChanged" || i.check === "test" || rules.checks[i.check]);
-    return { kind, message, issues, planHash: hash(message) };
+    return { kind, message, card, issues, planHash: hash(message + JSON.stringify(card)) };
 }
+
+function join(...parts: (string | null | undefined | false)[]): string {
+    return parts.filter(Boolean).join("\n\n");
+}
+
+const hashtags = () => brand.hashtags.join(" ");
 
 function lessonLabel(o: Occurrence, startAt: Date | null, dance: string | null): string {
     const at = startAt ? formatTime12(zonedParts(startAt, o.timeZone).hhmm) : "(no time)";
@@ -47,7 +67,9 @@ export function lessonDraft(o: Occurrence, siteUrl: string): Draft {
         issues.push({ check: "substituteMissingName", message: "A substitute is set but has no name" });
     }
 
-    const lines: string[] = [];
+    const cardLessons: CardLesson[] = [];
+    const lessonLines: string[] = [];
+    const stepsheets: string[] = [];
     for (const l of lessons) {
         const dance = l.dance?.trim() || null;
         const label = lessonLabel(o, l.startAt, dance);
@@ -58,56 +80,90 @@ export function lessonDraft(o: Occurrence, siteUrl: string): Draft {
         if (!l.link?.trim()) issues.push({ check: "lessonMissingLink", message: `${label}: no link` });
 
         const time = l.startAt ? formatTime12(zonedParts(l.startAt, o.timeZone).hhmm) : "TBA";
-        const level = l.level?.trim() ? ` (${l.level.trim()})` : "";
-        lines.push(`${time} · ${dance ?? "TBA"}${level}`);
-        if (l.link?.trim()) lines.push(`   ${l.link.trim()}`);
+        const level = l.level?.trim() || null;
+        cardLessons.push({ time, dance: dance ?? "TBA", level });
+        lessonLines.push(`${time}  ${dance ?? "TBA"}${level ? ` · ${level}` : ""}`);
+        if (dance && l.link?.trim()) stepsheets.push(`${dance}: ${l.link.trim()}`);
     }
 
-    const start = localStartTime(o);
-    const when = Number(start.slice(0, 2)) >= 17 ? "Tonight" : "Today";
-    const where = o.venueName ? ` at ${o.venueName}` : "";
-    const details = [o.title, o.level, o.price].filter(Boolean).join(" · ");
+    const start = formatTime12(localStartTime(o));
+    const when = Number(localStartTime(o).slice(0, 2)) >= 17 ? "tonight" : "today";
+    const at = o.venueName ? ` at ${o.venueName}` : "";
+    const sub = o.substitute?.trim() || null;
 
-    const parts = [
-        `${when}'s line dance lessons${where}, starting ${formatTime12(start)} 🤠`,
-        details,
-        lines.join("\n"),
-        o.substitute?.trim() ? `${o.substitute.trim()} is teaching ${when.toLowerCase()}.` : "",
-        o.specialNote?.trim() ?? "",
-        `Full schedule: ${siteUrl}/calendar`,
-    ];
-    return finish("lesson", parts.filter(Boolean).join("\n\n"), issues);
+    const message = join(
+        `💃 Line dancing ${when}${at}! 🤠`,
+        `${o.title} · starts ${start}\n${[o.level, o.price, brand.welcome].filter(Boolean).join(" · ")}`,
+        lessonLines.length > 0 && `🎶 What we're learning:\n${lessonLines.join("\n")}`,
+        sub && `👋 ${sub} is teaching ${when}.`,
+        o.specialNote?.trim() && `📣 ${o.specialNote.trim()}`,
+        (o.venueName || o.venueAddress) && `📍 ${[o.venueName, o.venueAddress].filter(Boolean).join(", ")}`,
+        stepsheets.length > 0 && `📄 Step sheets:\n${stepsheets.join("\n")}`,
+        `📅 Full schedule: ${siteUrl}/calendar`,
+        hashtags(),
+    );
+    const card: CardData = {
+        type: "lesson",
+        eyebrow: `${when.toUpperCase()} · ${formatLongDate(o.date, true).toUpperCase()}`,
+        title: o.title, venue: o.venueName, startTime: start,
+        level: o.level, price: o.price, lessons: cardLessons, substitute: sub,
+    };
+    return finish("lesson", message, card, issues);
 }
 
 /** A cancellation notice. Always held for approval (see posts.ts). */
 export function cancellationDraft(o: Occurrence, siteUrl: string): Draft {
     const issues: Issue[] = [];
     if (!o.venueName) issues.push({ check: "venueMissing", message: "Venue not found" });
-    const where = o.venueName ? ` at ${o.venueName}` : "";
-    const parts = [
-        `Cancelled: ${o.title}${where} on ${formatShortDate(o.date)} at ${formatTime12(localStartTime(o))}.`,
-        o.cancelNote?.trim() ?? "",
-        `Sorry for the change! See the rest of this week's classes: ${siteUrl}/calendar`,
-    ];
-    return finish("cancellation", parts.filter(Boolean).join("\n\n"), issues);
+    const start = formatTime12(localStartTime(o));
+    const note = o.cancelNote?.trim() || null;
+    const message = join(
+        `⚠️ Class cancelled: ${o.title}${o.venueName ? ` at ${o.venueName}` : ""}`,
+        `${formatLongDate(o.date)} at ${start}`,
+        note,
+        "Sorry for the change, we'll see you at the next one! 💜",
+        `📅 This week's other classes: ${siteUrl}/calendar`,
+        hashtags(),
+    );
+    const card: CardData = {
+        type: "cancellation", eyebrow: formatLongDate(o.date, true).toUpperCase(),
+        title: o.title, venue: o.venueName, startTime: start, note,
+    };
+    return finish("cancellation", message, card, issues);
 }
 
 /** The Monday outline: times and places only, no lesson details. */
 export function weeklyDraft(occurrences: Occurrence[], siteUrl: string): Draft {
     const issues: Issue[] = [];
-    const lines = occurrences.map((o) => {
+    const byDay = new Map<string, Occurrence[]>();
+    for (const o of occurrences) {
         if (!o.venueName) issues.push({ check: "venueMissing", message: `${o.title} on ${formatShortDate(o.date)}: venue not found` });
-        const head = `${formatShortDate(o.date)} · ${formatTime12(localStartTime(o))} · ${o.title}${o.venueName ? ` at ${o.venueName}` : ""}`;
-        if (o.isCancelled) return `${head} · CANCELLED${o.cancelNote?.trim() ? ` (${o.cancelNote.trim()})` : ""}`;
-        const extras = [o.level, o.price].filter(Boolean).join(" · ");
-        const sub = o.substitute?.trim() ? ` · Sub: ${o.substitute.trim()}` : "";
-        return `${head}${extras ? ` (${extras})` : ""}${sub}`;
-    });
-    const message = [
-        "This week's line dance classes 🤠",
-        lines.length ? lines.join("\n") : "No classes this week.",
-        "Lesson plans go up a few hours before each class.",
-        `Full schedule: ${siteUrl}/calendar`,
-    ].join("\n\n");
-    return finish("weekly_outline", message, issues);
+        byDay.set(o.date, [...(byDay.get(o.date) ?? []), o]);
+    }
+
+    const days = [...byDay.entries()].map(([date, list]) => ({
+        day: formatShortDate(date).toUpperCase(),
+        classes: list.map((o): CardClass => ({
+            time: formatTime12(localStartTime(o)), title: o.title, venue: o.venueName,
+            detail: [o.level, o.price].filter(Boolean).join(" · "),
+            cancelled: o.isCancelled, substitute: o.substitute?.trim() || null,
+        })),
+    }));
+
+    const blocks = days.map(({ day, classes }) => `${day}\n${classes.map((c) => {
+        const line = `${c.time} · ${c.title}${c.venue ? ` @ ${c.venue}` : ""}`;
+        if (c.cancelled) return `${line} · CANCELLED`;
+        return `${line}${c.detail ? ` · ${c.detail}` : ""}${c.substitute ? ` · Sub: ${c.substitute}` : ""}`;
+    }).join("\n")}`);
+
+    const dates = occurrences.map((o) => o.date).sort();
+    const range = dates.length ? `${formatLongDate(dates[0], true)} – ${formatLongDate(dates[dates.length - 1], true)}` : "";
+    const message = join(
+        `🗓️ This week at ${brand.name} 🤠`,
+        blocks.length ? blocks.join("\n\n") : "No classes this week.",
+        `${brand.welcome}, everyone is welcome! Lesson plans post a few hours before each class.`,
+        `📅 Full schedule: ${siteUrl}/calendar`,
+        hashtags(),
+    );
+    return finish("weekly_outline", message, { type: "weekly", eyebrow: "THIS WEEK", range, days }, issues);
 }

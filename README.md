@@ -8,6 +8,10 @@ Automation for the Beyond Line Dance Facebook Page. It reads Stephen's schedule 
 
 Facebook Events aren't created. Meta's Graph API doesn't allow creating, updating or deleting events except for Marketing Partners ([Event reference](https://developers.facebook.com/docs/graph-api/reference/event/)). `pnpm fb:check-events -- --yes` confirms this against the Page.
 
+## What a post looks like
+
+Each post is a branded 1080×1350 image ([lib/card.tsx](lib/card.tsx): your logo, the sunset photo, Montserrat and Great Vibes) with the text as its caption ([lib/drafts.ts](lib/drafts.ts)). Facebook downloads the image from `/api/card/<post id>`, which is also the preview on the admin's Social Posts page. Hashtags and the "No partner needed" line are in `brand` in [lib/config.ts](lib/config.ts).
+
 ## Safety rails
 
 Every 30 minutes `/api/cron/tick` drafts the posts that are due and runs the checks in [lib/config.ts](lib/config.ts):
@@ -63,6 +67,7 @@ BLD_DB_NAME=bld
 - `pnpm test-alert`: send a sample phone alert
 - `pnpm preview`: read-only list of the next 7 days of classes and what will happen to each post (`MONGODB_URI=<live> pnpm preview` for live)
 - `MONGODB_URI=<live> pnpm e2e`: end-to-end test of production. Creates a held TEST post (shows on Social Posts, sends a phone alert); approving it publishes a hidden Facebook post. `-- --auto` publishes without approval; `-- --cleanup` deletes the hidden posts and test documents.
+- `pnpm render-cards [dir]`: render sample post images (lesson, cancellation, weekly) to PNG without posting anything
 - `pnpm typecheck`
 
 ## Not done yet

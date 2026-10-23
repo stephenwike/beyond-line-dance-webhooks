@@ -10,6 +10,14 @@ export type CheckId =
     | "substituteMissingName"
     | "venueMissing";
 
+/** Wording that appears on every post. */
+export const brand = {
+    name: "Beyond Line Dance",
+    /** Short reassurance shown with each class. */
+    welcome: "No partner needed",
+    hashtags: ["#LineDancing", "#DenverLineDance", "#CountryDancing", "#BeyondLineDance"],
+};
+
 export const rules = {
     lesson: {
         /** Post this many hours before class starts. */

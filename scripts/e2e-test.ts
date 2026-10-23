@@ -59,7 +59,7 @@ async function create(auto: boolean) {
         _id: id, key: `test:${id}`, kind: "test", eventTypeId: o.eventTypeId, eventId: o.eventId, date: o.date,
         startAt: null,
         label: `TEST · ${o.title}${o.venueName ? ` at ${o.venueName}` : ""}, ${formatShortDate(o.date)} ${formatTime12(zonedParts(o.startAt, o.timeZone).hhmm)}`,
-        status: "pending", message: draft.message, editedMessage: null,
+        status: "pending", message: draft.message, card: draft.card, editedMessage: null,
         issues: auto ? [] : [{ check: "test", message: "Test post: Approve & publish creates a hidden Facebook post (not on your Page or in feeds)" }],
         planHash: draft.planHash, approvedPlanHash: null,
         alertAt: now, expireAt: new Date(now.getTime() + 2 * 3_600_000), alertedAt: null,
