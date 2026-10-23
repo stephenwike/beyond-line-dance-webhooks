@@ -44,18 +44,24 @@ export async function publishToPage(message: string, opts: { hidden?: boolean; i
         const body = await graphPost(`${env.fbPageId()}/feed`, { ...params, message });
         id = String(body.id);
     }
-    return { id, permalink: opts.hidden ? null : await permalinkOf(id) };
+    return { id, permalink: await permalinkOf(id) };
 }
 
-/** Facebook's own link to a post, or null if it can't be read. */
-async function permalinkOf(postId: string): Promise<string | null> {
-    try {
-        const res = await fetch(`https://graph.facebook.com/${env.fbGraphVersion()}/${postId}?fields=permalink_url&access_token=${env.fbPageToken()}`);
-        const body = await res.json();
-        return typeof body.permalink_url === "string" ? body.permalink_url : null;
-    } catch {
-        return null;
-    }
+/**
+ * Facebook's own link to a post, or null if it can't be read. Posts have permalink_url; a hidden photo
+ * is only a photo object, whose page is its `link`.
+ */
+export async function permalinkOf(id: string): Promise<string | null> {
+    const field = async (name: string) => {
+        try {
+            const res = await fetch(`https://graph.facebook.com/${env.fbGraphVersion()}/${id}?fields=${name}&access_token=${env.fbPageToken()}`);
+            const body = await res.json();
+            return typeof body[name] === "string" ? body[name] as string : null;
+        } catch {
+            return null;
+        }
+    };
+    return (await field("permalink_url")) ?? (await field("link"));
 }
 
 /** Facebook's own copy of a post, so hidden (unpublished) posts can be checked from the admin. */
