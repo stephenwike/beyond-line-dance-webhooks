@@ -68,7 +68,11 @@ const HOUR = 3_600_000;
 export type Step = "publish" | "alert" | "expire" | "reopen" | "none";
 
 /** What a tick should do with an open post. Pure, so the rules are easy to test. */
-export function nextStep(p: Pick<SocialPost, "kind" | "status" | "issues" | "planHash" | "approvedPlanHash" | "alertAt" | "expireAt" | "alertedAt" | "startAt">, now: Date): Step {
+export function nextStep(
+    p: Pick<SocialPost, "kind" | "status" | "issues" | "planHash" | "approvedPlanHash" | "alertAt" | "expireAt" | "alertedAt" | "startAt">,
+    now: Date,
+    autoPublish: boolean = rules.autoPublish,
+): Step {
     if (p.status === "approved") {
         if (p.planHash !== p.approvedPlanHash) return "reopen";
         if (p.startAt && now >= p.startAt) return "expire";
@@ -76,7 +80,11 @@ export function nextStep(p: Pick<SocialPost, "kind" | "status" | "issues" | "pla
     }
     if (p.status !== "pending") return "none";
     if (now >= p.expireAt) return "expire";
-    if (p.issues.length === 0 && p.kind !== "cancellation") return "publish";
+    if (p.issues.length === 0 && p.kind !== "cancellation") {
+        if (autoPublish) return "publish";
+        // Ready, but you review everything: ask now rather than 3 hours before class.
+        return p.alertedAt ? "none" : "alert";
+    }
     if (now >= p.alertAt && !p.alertedAt) return "alert";
     return "none";
 }

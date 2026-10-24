@@ -14,7 +14,7 @@ const issue = [{ check: "noLessons" as const, message: "No lesson plan yet" }];
 
 describe("nextStep", () => {
     it("publishes a clean lesson post right away", () => {
-        expect(nextStep(post(), h(6))).toBe("publish");
+        expect(nextStep(post(), h(6), true)).toBe("publish");
     });
 
     it("holds a post with issues, alerts once at 3h, expires at 1h", () => {
@@ -22,6 +22,12 @@ describe("nextStep", () => {
         expect(nextStep(post({ issues: issue }), h(3))).toBe("alert");
         expect(nextStep(post({ issues: issue, alertedAt: h(3) }), h(2))).toBe("none");
         expect(nextStep(post({ issues: issue, alertedAt: h(3) }), h(1))).toBe("expire");
+    });
+
+    it("asks right away instead of publishing when autoPublish is off", () => {
+        expect(nextStep(post(), h(6), false)).toBe("alert");
+        expect(nextStep(post({ alertedAt: h(6) }), h(5), false)).toBe("none");
+        expect(nextStep(post({ alertedAt: h(6) }), h(1), false)).toBe("expire");
     });
 
     it("never auto-publishes a cancellation", () => {

@@ -43,7 +43,7 @@ export function waitingAlert(p: AlertPost, timeZone: string): Alert {
     const reasons = p.kind === "cancellation"
         ? ["Cancellations always need your OK"]
         : p.issues.filter((i) => i.check !== "test").map((i) => i.message);
-    const shown = reasons.slice(0, 2).map((r) => `• ${r}`);
+    const shown = reasons.length ? reasons.slice(0, 2).map((r) => `• ${r}`) : ["• Ready to post: approve it when it looks right"];
     if (reasons.length > 2) shown.push(`+ ${reasons.length - 2} more`);
     const by = formatTime12(zonedParts(p.expireAt, timeZone).hhmm);
     return {

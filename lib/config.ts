@@ -19,6 +19,11 @@ export const brand = {
 };
 
 export const rules = {
+    /**
+     * Post complete plans without asking. Off: every post waits for your approval, and one that's ready
+     * alerts you right away instead of 3 hours before class.
+     */
+    autoPublish: false,
     /** After each post reaches Facebook, send a phone alert to share it to WhatsApp (lib/whatsapp.ts). */
     whatsappShare: true,
     lesson: {
